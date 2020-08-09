@@ -6,6 +6,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace LanPlayServer
 {
@@ -61,7 +62,13 @@ namespace LanPlayServer
 
         private void HandlePassphrase(LdnHeader header, PassphraseMessage message)
         {
-            Passphrase = StringUtils.ReadUtf8String(message.Passphrase);
+            string passphrase = StringUtils.ReadUtf8String(message.Passphrase);
+
+            Regex match = new Regex("Ryujinx-[0-9a-f]{8}");
+
+            bool valid = passphrase == "" || (passphrase.Length == 16 && match.IsMatch(passphrase));
+
+            Passphrase = valid ? passphrase : "";
         }
 
         private void HandleDisconnect(LdnHeader header, DisconnectMessage message)
