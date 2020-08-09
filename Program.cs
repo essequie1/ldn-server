@@ -7,7 +7,7 @@ namespace LanPlayServer
     {
         static void Main(string[] args)
         {
-            int port = 4242;
+            int port = 1337;
 
             Console.WriteLine($"TCP server port: {port}");
             Console.WriteLine();
