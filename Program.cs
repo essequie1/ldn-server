@@ -64,7 +64,7 @@ namespace LanPlayServer
                 string passphrase = game.Value.Passphrase ?? "";
 
                 List<HostedGame> target;
-                if (gamesByPassphrase.TryGetValue(passphrase, out target))
+                if (!gamesByPassphrase.TryGetValue(passphrase, out target))
                 {
                     target = new List<HostedGame>();
 
