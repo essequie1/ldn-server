@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.IO;
 
 namespace LanPlayServer
 {
@@ -13,6 +16,11 @@ namespace LanPlayServer
             Name = name;
         }
     }
+    public class JsonGame
+    {
+        public string id;
+        public string name;
+    }
 
     public static class GameList
     {
@@ -20,10 +28,32 @@ namespace LanPlayServer
         // We still need to be able to provide game specific info, as we might want to parse AdvertiseData or do special things for different games.
         // (eg. a mode to regulate framerate to keep sync in Mario Kart would be nice)
 
-        private static Dictionary<ulong, Game> _games = new Dictionary<ulong, Game>()
-        {
-            { 0x0100152000022000, new Game(0x0100152000022000, "Mario Kart 8 Deluxe") }
-        };
+        private static Dictionary<ulong, Game> _games = new Dictionary<ulong, Game>();
+
+        static GameList() {
+            try
+            {
+                JsonGame[] data = JsonConvert.DeserializeObject<JsonGame[]>(File.ReadAllText("gamelist.json"));
+
+                foreach (JsonGame game in data)
+                {
+                    try
+                    {
+                        ulong id = ulong.Parse(game.id.Substring(2), System.Globalization.NumberStyles.HexNumber);
+
+                        _games[id] = new Game(id, game.name);
+                    }
+                    catch (Exception)
+                    {
+
+                    }
+                }
+            }
+            catch (Exception)
+            {
+
+            }
+        }
 
         public static Game GetGameById(ulong id)
         {
