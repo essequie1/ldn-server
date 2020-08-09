@@ -76,6 +76,8 @@ namespace LanPlayServer
             }
         }
 
+        public bool IsP2P => _useExternalProxy;
+
         public HostedGame(string id, NetworkInfo info)
         {
             Id = id;

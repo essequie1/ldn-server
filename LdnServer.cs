@@ -40,6 +40,11 @@ namespace LanPlayServer
             return result;
         }
 
+        public KeyValuePair<string, HostedGame>[] All()
+        {
+            return HostedGames.ToArray();
+        }
+
         public int Scan(ref NetworkInfo[] info, ScanFilter filter, string passphrase)
         {
             KeyValuePair<string, HostedGame>[] all = HostedGames.ToArray();
