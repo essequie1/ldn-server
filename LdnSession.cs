@@ -181,8 +181,6 @@ namespace LanPlayServer
                 SendAsync(_protocol.Encode(PacketId.ScanReply, info));
             }
 
-            Console.WriteLine($"Party counter: {games}");
-
             SendAsync(_protocol.Encode(PacketId.ScanReplyEnd));
         }
 
