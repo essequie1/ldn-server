@@ -1,0 +1,14 @@
+D:\Games\RyuWork\Ryujinx\Ryujinx.LanPlay.Server\bin\Debug\netcoreapp3.1\LanPlayServer.exe
+D:\Games\RyuWork\Ryujinx\Ryujinx.LanPlay.Server\bin\Debug\netcoreapp3.1\LanPlayServer.deps.json
+D:\Games\RyuWork\Ryujinx\Ryujinx.LanPlay.Server\bin\Debug\netcoreapp3.1\LanPlayServer.runtimeconfig.json
+D:\Games\RyuWork\Ryujinx\Ryujinx.LanPlay.Server\bin\Debug\netcoreapp3.1\LanPlayServer.runtimeconfig.dev.json
+D:\Games\RyuWork\Ryujinx\Ryujinx.LanPlay.Server\bin\Debug\netcoreapp3.1\LanPlayServer.dll
+D:\Games\RyuWork\Ryujinx\Ryujinx.LanPlay.Server\bin\Debug\netcoreapp3.1\LanPlayServer.pdb
+D:\Games\RyuWork\Ryujinx\Ryujinx.LanPlay.Server\bin\Debug\netcoreapp3.1\NetCoreServer.dll
+D:\Games\RyuWork\Ryujinx\Ryujinx.LanPlay.Server\bin\Debug\netcoreapp3.1\Newtonsoft.Json.dll
+D:\Games\RyuWork\Ryujinx\Ryujinx.LanPlay.Server\obj\Debug\netcoreapp3.1\LanPlayServer.csprojAssemblyReference.cache
+D:\Games\RyuWork\Ryujinx\Ryujinx.LanPlay.Server\obj\Debug\netcoreapp3.1\LanPlayServer.AssemblyInfoInputs.cache
+D:\Games\RyuWork\Ryujinx\Ryujinx.LanPlay.Server\obj\Debug\netcoreapp3.1\LanPlayServer.AssemblyInfo.cs
+D:\Games\RyuWork\Ryujinx\Ryujinx.LanPlay.Server\obj\Debug\netcoreapp3.1\LanPlayServer.csproj.CopyComplete
+D:\Games\RyuWork\Ryujinx\Ryujinx.LanPlay.Server\obj\Debug\netcoreapp3.1\LanPlayServer.dll
+D:\Games\RyuWork\Ryujinx\Ryujinx.LanPlay.Server\obj\Debug\netcoreapp3.1\LanPlayServer.pdb
