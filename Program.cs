@@ -9,50 +9,94 @@ namespace LanPlayServer
     {
         static void Main(string[] args)
         {
-            int port = 30456;
+            int portLdn = 30456;
+            int portApi = 8080;
 
-            Console.WriteLine($"TCP server port: {port}");
             Console.WriteLine();
+            Console.WriteLine( "__________                     __ .__                  .____         .___        ");
+            Console.WriteLine(@"\______   \ ___.__. __ __     |__||__|  ____  ___  ___ |    |      __| _/  ____  ");
+            Console.WriteLine(@" |       _/<   |  ||  |  \    |  ||  | /    \ \  \/  / |    |     / __ |  /    \ ");
+            Console.WriteLine(@" |    |   \ \___  ||  |  /    |  ||  ||   |  \ >    <  |    |___ / /_/ | |   |  \");
+            Console.WriteLine(@" |____|_  / / ____||____/ /\__|  ||__||___|  //__/\_ \ |_______ \\____ | |___|  /");
+            Console.WriteLine(@"        \/  \/            \______|         \/       \/         \/     \/      \/ ");
+            Console.WriteLine();
+            Console.WriteLine( "_________________________________________________________________________________");
+            Console.WriteLine();
+            Console.WriteLine("- Informations");
 
-            var server = new LdnServer(IPAddress.Any, port);
+            LdnServer     ldnServer = new LdnServer(IPAddress.Any, portLdn);
+            ApiServer apiServer = new ApiServer(IPAddress.Any, portApi, ldnServer);
 
-            Console.Write("Server starting...");
-            server.Start();
-            Console.WriteLine(" done!");
+            Console.Write($"    LdnServer (port: {portLdn}) starting...");
+            ldnServer.Start();
+            Console.WriteLine(" Done!");
+
+            Console.Write($"    ApiServer (port: {portApi}) starting...");
+            apiServer.Start();
+            Console.WriteLine(" Done!");
+
+            Console.WriteLine();
+            Console.WriteLine("- Commands");
+            Console.WriteLine("    !restart-ldn -> Restart the LDN server.");
+            Console.WriteLine("    !restart-api -> Restart the API server.");
+            Console.WriteLine("    !close       -> Close all servers.");
+            Console.WriteLine("    !list        -> Get LDN server analytics.");
+            Console.WriteLine("_________________________________________________________________________________");
+            Console.WriteLine();
+            Console.WriteLine("Type a command:");
 
             for (;;)
             {
                 string line = Console.ReadLine();
 
-                if (line == "!")
-                {
-                    Console.Write("Server restarting...");
-                    server.Restart();
-                    Console.WriteLine("Done!");
-                    continue;
-                }
-
-                if (line == "close")
+                if (line == "!close")
                 {
                     break;
                 }
 
                 bool commandValid = line switch {
-                    "list" => List(server),
+                    "!restart-ldn" => RestartLdnServer(ldnServer),
+                    "!restart-api" => RestartApiServer(apiServer),
+                    "!list"        => List(ldnServer),
                     _ => false
                 };
 
                 if (!commandValid)
                 {
                     Console.WriteLine("Invalid command.");
+                    Console.WriteLine();
+                    Console.WriteLine("Type a command:");
                 }
             }
 
-            Console.Write("Server stopping...");
-            server.Stop();
-            Console.WriteLine(" done!");
+            Console.Write("LdnServer stopping...");
+            ldnServer.Stop();
+            Console.WriteLine(" Done!");
+
+            Console.Write("ApiServer stopping...");
+            apiServer.Stop();
+            Console.WriteLine(" Done!");
         }
 
+        static bool RestartLdnServer(LdnServer ldnServer)
+        {
+            Console.Write("    !restart-ldn: LDN Server restarting...");
+            ldnServer.Restart();
+            Console.WriteLine("Done!");
+
+            return true;
+        }
+
+        static bool RestartApiServer(ApiServer apiServer)
+        {
+            Console.Write("    !restart-api: API Server restarting...");
+            apiServer.Restart();
+            Console.WriteLine("Done!");
+
+            return true;
+        }
+
+        // TODO: Maybe handle that in the API with a password or something ?
         static bool List(LdnServer server)
         {
             KeyValuePair<string, HostedGame>[] games = server.All();
@@ -80,6 +124,8 @@ namespace LanPlayServer
             int privatePlayerCount = 0;
             int masterProxyCount = 0;
             int inProgressCount = 0;
+
+            Console.WriteLine("   !list:");
 
             foreach (KeyValuePair<string, List<HostedGame>> group in gamesByPassphrase)
             {
