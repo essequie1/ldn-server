@@ -18,7 +18,6 @@ namespace LanPlayServer
         {
             HostedGames = new ConcurrentDictionary<string, HostedGame>();
             OptionNoDelay = true;
-            OptionKeepAlive = true;
         }
 
         public HostedGame CreateGame(string id, NetworkInfo info)
