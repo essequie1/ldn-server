@@ -33,7 +33,7 @@ namespace LanPlayServer
         static GameList() {
             try
             {
-                JsonGame[] data = JsonConvert.DeserializeObject<JsonGame[]>(File.ReadAllText("gamelist.json"));
+                JsonGame[] data = JsonConvert.DeserializeObject<JsonGame[]>(File.ReadAllText("Utils/gamelist.json"));
 
                 foreach (JsonGame game in data)
                 {
