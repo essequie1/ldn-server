@@ -131,7 +131,10 @@ namespace LanPlayServer
             removed?.Close();
         }
 
-        protected override TcpSession CreateSession() { return new LdnSession(this); }
+        protected override TcpSession CreateSession()
+        { 
+            return new LdnSession(this);
+        }
 
         protected override void OnError(SocketError error)
         {

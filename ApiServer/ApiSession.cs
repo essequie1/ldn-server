@@ -43,7 +43,15 @@ namespace LanPlayServer
 
             if (bodyResponse != "")
             {
-                SendResponseAsync(Response.MakeGetResponse(bodyResponse, "application/json; charset=UTF-8"));
+                HttpResponse httpResponse = new HttpResponse();
+
+                httpResponse.Clear();
+                httpResponse.SetBegin(200);
+                httpResponse.SetHeader("Content-Type", "application/json; charset=UTF-8");
+                httpResponse.SetHeader("Access-Control-Allow-Origin", "*");
+                httpResponse.SetBody(bodyResponse);
+
+                SendResponseAsync(httpResponse);
             }
             else
             {
