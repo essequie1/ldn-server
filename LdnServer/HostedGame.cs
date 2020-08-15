@@ -84,7 +84,7 @@ namespace LanPlayServer
             _players = new List<LdnSession>();
             _dhcp    = new VirtualDhcp(NetworkBaseAddress, NetworkSubnetMask);
 
-            _protocol = new RyuLdnProtocol("91ac8b112e1d4536a73c49f8eb9cb064");
+            _protocol = new RyuLdnProtocol();
 
             UpdateNetworkInfo(info);
         }

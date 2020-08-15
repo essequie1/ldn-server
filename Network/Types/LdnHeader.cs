@@ -2,13 +2,12 @@
 
 namespace LanPlayServer.Network.Types
 {
-    [StructLayout(LayoutKind.Sequential, Size = 0x19)]
+    [StructLayout(LayoutKind.Sequential, Size = 0xA)]
     struct LdnHeader
     {
         public uint Magic;
         public byte Type;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 0x10)]
-        public byte[] UserId;
+        public byte Version;
         public int DataSize;
     }
 }

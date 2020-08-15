@@ -29,7 +29,7 @@ namespace LanPlayServer
 
             new Random().NextBytes(MacAddress);
 
-            _protocol = new RyuLdnProtocol("91ac8b112e1d4536a73c49f8eb9cb064");
+            _protocol = new RyuLdnProtocol();
 
             _protocol.Passphrase        += HandlePassphrase;
             _protocol.CreateAccessPoint += HandleCreateAccessPoint;

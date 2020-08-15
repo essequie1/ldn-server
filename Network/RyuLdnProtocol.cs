@@ -9,6 +9,8 @@ namespace LanPlayServer.Network
 {
     class RyuLdnProtocol
     {
+        private const byte CurrentProtocolVersion = 0;
+
         private const int Magic = ('R' << 0) | ('L' << 8) | ('D' << 16) | ('N' << 24);
         private const int MaxPacketSize = 131072;
         private readonly int _headerSize = Marshal.SizeOf<LdnHeader>();
@@ -43,18 +45,8 @@ namespace LanPlayServer.Network
         public event Action<LdnHeader, ProxyDataHeader, byte[]> ProxyData;
         public event Action<LdnHeader, ProxyDisconnectMessage> ProxyDisconnect;
 
-        public string UserId { get; private set; }
-        private byte[] _userIdBytes;
-
-        public RyuLdnProtocol(string userId)
+        public RyuLdnProtocol()
         {
-            SetUserId(userId);
-        }
-
-        public void SetUserId(string userId)
-        {
-            UserId = userId;
-            _userIdBytes = LdnHelper.StringToByteArray(userId);
         }
 
         public void Reset()
@@ -88,7 +80,12 @@ namespace LanPlayServer.Network
 
                     if (ldnHeader.Magic != Magic)
                     {
-                        throw new InvalidOperationException($"Invalid magic number in received packet.");
+                        throw new InvalidOperationException("Invalid magic number in received packet.");
+                    }
+
+                    if (ldnHeader.Version != CurrentProtocolVersion)
+                    {
+                        throw new InvalidOperationException($"Protocol version mismatch. Expected ${CurrentProtocolVersion}, was ${ldnHeader.Version}.");
                     }
 
                     int finalSize = _headerSize + ldnHeader.DataSize;
@@ -169,8 +166,8 @@ namespace LanPlayServer.Network
                 case PacketId.SetAdvertiseData:
                     SetAdvertiseData?.Invoke(header, data);
                     break;
-                case PacketId.SyncNetwork:
-                    SyncNetwork?.Invoke(header, ParseDefault<NetworkInfo>(data));
+                case PacketId.SyncNetwork: 
+                    SyncNetwork?.Invoke(header, ParseDefault<NetworkInfo>(data)); 
                     break;
                 case PacketId.Scan:
                     Scan?.Invoke(header, ParseDefault<ScanFilter>(data));
@@ -220,7 +217,7 @@ namespace LanPlayServer.Network
             return new LdnHeader()
             {
                 Magic = Magic,
-                UserId = _userIdBytes,
+                Version = CurrentProtocolVersion,
                 Type = (byte)type,
                 DataSize = dataSize
             };
