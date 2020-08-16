@@ -3,15 +3,19 @@ using LanPlayServer.Network.Types;
 using NetCoreServer;
 using Ryujinx.HLE.HOS.Services.Ldn.Types;
 using System;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace LanPlayServer
 {
     class LdnSession : TcpSession
     {
+        private const int ExternalProxyTimeout = 2;
+
         public HostedGame CurrentGame { get; set; }
         public byte[]     MacAddress  { get; private set; }
         public uint       IpAddress   { get; private set; }
@@ -266,10 +270,45 @@ namespace LanPlayServer
                 };
             }
 
+            if (request.ExternalProxyPort != 0 && !IsProxyReachable(request.ExternalProxyPort))
+            {
+                SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.PortUnreachable }));
+            }
+
             HostedGame game = _tcpServer.CreateGame(id, networkInfo);
 
             game.SetOwner(this, request);
             game.Connect(this, myInfo);
+        }
+
+        private bool IsProxyReachable(ushort port)
+        {
+            // Attempt to establish a connection to the p2p server owned by the host.
+            // We don't need to send anything, just establish a TCP connection.
+            // If that is not possible, then their external proxy isn't reachable from the internet.
+
+            IPEndPoint ep = new IPEndPoint((Socket.RemoteEndPoint as IPEndPoint).Address, port);
+
+            NetCoreServer.TcpClient client = new NetCoreServer.TcpClient(ep);
+            client.ConnectAsync();
+
+            long endTime = Stopwatch.GetTimestamp() + Stopwatch.Frequency * ExternalProxyTimeout;
+
+            while (Stopwatch.GetTimestamp() < endTime)
+            {
+                if (client.IsConnected)
+                {
+                    client.Dispose();
+
+                    return true;
+                }
+
+                Thread.Sleep(1);
+            }
+
+            client.Dispose();
+
+            return false;
         }
 
         private void HandleConnect(LdnHeader ldnPacket, ConnectRequest request)

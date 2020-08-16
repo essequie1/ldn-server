@@ -22,6 +22,8 @@
         ProxyDisconnect,
 
         SetAcceptPolicy,
-        SetAdvertiseData
+        SetAdvertiseData,
+
+        NetworkError = 255
     }
 }

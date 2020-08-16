@@ -1,8 +1,6 @@
-﻿using LanPlayServer;
-using LanPlayServer.Network.Types;
+﻿using LanPlayServer.Network.Types;
 using Ryujinx.HLE.HOS.Services.Ldn.Types;
 using System;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace LanPlayServer.Network
@@ -44,6 +42,8 @@ namespace LanPlayServer.Network
         public event Action<LdnHeader, ProxyConnectResponse> ProxyConnectReply;
         public event Action<LdnHeader, ProxyDataHeader, byte[]> ProxyData;
         public event Action<LdnHeader, ProxyDisconnectMessage> ProxyDisconnect;
+
+        public event Action<LdnHeader, NetworkErrorMessage> NetworkError;
 
         public RyuLdnProtocol()
         {
@@ -166,8 +166,8 @@ namespace LanPlayServer.Network
                 case PacketId.SetAdvertiseData:
                     SetAdvertiseData?.Invoke(header, data);
                     break;
-                case PacketId.SyncNetwork: 
-                    SyncNetwork?.Invoke(header, ParseDefault<NetworkInfo>(data)); 
+                case PacketId.SyncNetwork:
+                    SyncNetwork?.Invoke(header, ParseDefault<NetworkInfo>(data));
                     break;
                 case PacketId.Scan:
                     Scan?.Invoke(header, ParseDefault<ScanFilter>(data));
@@ -206,6 +206,10 @@ namespace LanPlayServer.Network
                     }
                 case PacketId.ProxyDisconnect:
                     ProxyDisconnect?.Invoke(header, ParseDefault<ProxyDisconnectMessage>(data));
+                    break;
+
+                case PacketId.NetworkError:
+                    NetworkError?.Invoke(header, ParseDefault<NetworkErrorMessage>(data));
                     break;
 
                 default: break;
