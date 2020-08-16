@@ -7,7 +7,7 @@ namespace LanPlayServer
 {
     class ApiServer : HttpServer
     {
-        LdnServer _ldnServer;
+        readonly LdnServer _ldnServer;
 
         public ApiServer(IPAddress address, int port, LdnServer ldnServer) : base(address, port)
         {

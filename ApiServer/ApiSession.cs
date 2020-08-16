@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
 
@@ -16,67 +17,76 @@ namespace LanPlayServer
         public ApiSession(HttpServer server, LdnServer ldnServer) : base(server)
         {
             _ldnServer = ldnServer;
+
+            RateLimiter.SetRateLimit(100, 60000); // 100 requests/min
         }
 
         protected override void OnReceivedRequest(HttpRequest request)
         {
-            string bodyResponse = "";
-
-            string key = Uri.UnescapeDataString(request.Url);
-
-            if (request.Method == "GET")
-            {
-                if (key == ApiEndpoints.Api || key == ApiEndpoints.Games)
-                {
-                    bodyResponse = List(key);
-                }
-                else
-                {
-                    key = key.Replace(ApiEndpoints.Games + "?titleid=", "", StringComparison.InvariantCultureIgnoreCase);
-
-                    bool isTitleId = Regex.IsMatch(key, "^[a-z0-9/._-]{16}$");
-                    if (isTitleId)
-                    {
-                        bodyResponse = List(ApiEndpoints.Games, key);
-                    }
-                }
-            }
-
             HttpResponse httpResponse = new HttpResponse();
             httpResponse.Clear();
 
-            if (bodyResponse != "")
+            if (!RateLimiter.IsRateLimited(((IPEndPoint)Socket.RemoteEndPoint).Address))
             {
-                httpResponse.SetBegin(200);
-                httpResponse.SetContentType(".json");
-                httpResponse.SetHeader("Access-Control-Allow-Origin", "*");
-                httpResponse.SetBody(bodyResponse);
-            }
-            else
-            {
-                string[] fileList = { "/", "/index.html", "/style.css", "/main.js" };
+                string bodyResponse = "";
+                string urlEndpoint  = Uri.UnescapeDataString(request.Url);
 
-                if (fileList.Contains(key))
+                if (request.Method == "GET")
                 {
-                    httpResponse.SetBegin(200);
-                    httpResponse.SetHeader("Cache-Control", $"max-age={TimeSpan.FromHours(1).Seconds}");
-
-                    if ((key == fileList[0]) || (key == fileList[1]))
+                    if (urlEndpoint == ApiEndpoints.Api || urlEndpoint == ApiEndpoints.Games)
                     {
-                        httpResponse.SetContentType(".html");
-                        httpResponse.SetBody(File.ReadAllText($"www{fileList[1]}"));
+                        bodyResponse = List(urlEndpoint);
                     }
                     else
                     {
-                        httpResponse.SetContentType(Path.GetExtension(key));
-                        httpResponse.SetBody(File.ReadAllText($"www{key}"));
+                        urlEndpoint = urlEndpoint.Replace(ApiEndpoints.Games + "?titleid=", "", StringComparison.InvariantCultureIgnoreCase);
+
+                        bool isTitleId = Regex.IsMatch(urlEndpoint, "^[a-z0-9/._-]{16}$");
+                        if (isTitleId)
+                        {
+                            bodyResponse = List(ApiEndpoints.Games, urlEndpoint);
+                        }
                     }
+                }
+
+                if (bodyResponse != "")
+                {
+                    httpResponse.SetBegin(200);
+                    httpResponse.SetContentType(".json");
+                    httpResponse.SetHeader("Access-Control-Allow-Origin", "*");
+                    httpResponse.SetBody(bodyResponse);
                 }
                 else
                 {
-                    httpResponse.SetBegin(404);
-                    httpResponse.SetBody("");
+                    string[] fileList = { "/", "/index.html", "/style.css", "/main.js" };
+
+                    if (fileList.Contains(urlEndpoint))
+                    {
+                        httpResponse.SetBegin(200);
+                        httpResponse.SetHeader("Cache-Control", $"max-age={TimeSpan.FromHours(1).Seconds}");
+
+                        if ((urlEndpoint == fileList[0]) || (urlEndpoint == fileList[1]))
+                        {
+                            httpResponse.SetContentType(".html");
+                            httpResponse.SetBody(File.ReadAllText($"www{fileList[1]}"));
+                        }
+                        else
+                        {
+                            httpResponse.SetContentType(Path.GetExtension(urlEndpoint));
+                            httpResponse.SetBody(File.ReadAllText($"www{urlEndpoint}"));
+                        }
+                    }
+                    else
+                    {
+                        httpResponse.SetBegin(404);
+                        httpResponse.SetBody("");
+                    }
                 }
+            }
+            else
+            {
+                httpResponse.SetBegin(429);
+                httpResponse.SetBody("");
             }
 
             SendResponseAsync(httpResponse);
