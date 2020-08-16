@@ -38,8 +38,6 @@ namespace LanPlayServer
             }
             else
             {
-                CleanBucket();
-
                 TimeSpan elapsedTime = DateTime.Now - _rateLimiterBucket[ipAddress].StartTime;
 
                 if (elapsedTime >= TimeSpan.FromMilliseconds(_rateLimitTime))
@@ -61,21 +59,6 @@ namespace LanPlayServer
             }
 
             return false;
-        }
-
-        private static void CleanBucket()
-        {
-            Dictionary<IPAddress, RateLimiterBucket> tempRateLimiterBucket = _rateLimiterBucket.ToDictionary(entry => entry.Key, entry => entry.Value);
-
-            foreach (KeyValuePair<IPAddress, RateLimiterBucket> itemBucket in tempRateLimiterBucket)
-            {
-                TimeSpan elapsedTime = DateTime.Now - itemBucket.Value.StartTime;
-
-                if (elapsedTime >= TimeSpan.FromMilliseconds(_rateLimitTime))
-                {
-                    _rateLimiterBucket.Remove(itemBucket.Key);
-                }
-            }
         }
     }
 }
