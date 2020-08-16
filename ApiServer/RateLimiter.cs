@@ -18,6 +18,8 @@ namespace LanPlayServer
 
         private static readonly Dictionary<IPAddress, RateLimiterBucket> _rateLimiterBucket = new Dictionary<IPAddress, RateLimiterBucket>();
 
+        private static readonly object lockObj = new object();
+
         public static void SetRateLimit(uint rateLimit, double rateLimitTime)
         {
             _rateLimit     = rateLimit;
@@ -26,39 +28,43 @@ namespace LanPlayServer
 
         public static bool IsRateLimited(IPAddress ipAddress)
         {
-            if (!_rateLimiterBucket.ContainsKey(ipAddress))
+            lock (lockObj)
             {
-                _rateLimiterBucket[ipAddress] = new RateLimiterBucket()
+                if (!_rateLimiterBucket.ContainsKey(ipAddress))
                 {
-                    Count     = 1,
-                    StartTime = DateTime.Now
-                };
+                    _rateLimiterBucket[ipAddress] = new RateLimiterBucket()
+                    {
+                        Count = 1,
+                        StartTime = DateTime.Now
+                    };
 
-                return false;
-            }
-            else
-            {
-                TimeSpan elapsedTime = DateTime.Now - _rateLimiterBucket[ipAddress].StartTime;
-
-                if (elapsedTime >= TimeSpan.FromMilliseconds(_rateLimitTime))
-                {
-                    _rateLimiterBucket[ipAddress].Count     = 1;
-                    _rateLimiterBucket[ipAddress].StartTime = DateTime.Now;
+                    return false;
                 }
                 else
                 {
-                    if (_rateLimiterBucket[ipAddress].Count >= _rateLimit)
+                    RateLimiterBucket rateLimiterBucket = _rateLimiterBucket[ipAddress];
+                    TimeSpan elapsedTime = DateTime.Now - rateLimiterBucket.StartTime;
+
+                    if (elapsedTime >= TimeSpan.FromMilliseconds(_rateLimitTime))
                     {
-                        return true;
+                        rateLimiterBucket.Count = 1;
+                        rateLimiterBucket.StartTime = DateTime.Now;
                     }
                     else
                     {
-                        _rateLimiterBucket[ipAddress].Count++;
+                        if (rateLimiterBucket.Count >= _rateLimit)
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            rateLimiterBucket.Count++;
+                        }
                     }
                 }
-            }
 
-            return false;
+                return false;
+            }
         }
     }
 }
