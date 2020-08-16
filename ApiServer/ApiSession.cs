@@ -2,6 +2,7 @@
 using Ryujinx.HLE.HOS.Services.Ldn.Types;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
@@ -10,7 +11,7 @@ namespace LanPlayServer
 {
     class ApiSession : HttpSession
     {
-        LdnServer _ldnServer;
+        readonly LdnServer _ldnServer;
 
         public ApiSession(HttpServer server, LdnServer ldnServer) : base(server)
         {
@@ -21,10 +22,10 @@ namespace LanPlayServer
         {
             string bodyResponse = "";
 
+            string key = Uri.UnescapeDataString(request.Url);
+
             if (request.Method == "GET")
             {
-                string key = Uri.UnescapeDataString(request.Url);
-
                 if (key == ApiEndpoints.Api || key == ApiEndpoints.Games)
                 {
                     bodyResponse = List(key);
@@ -41,22 +42,44 @@ namespace LanPlayServer
                 }
             }
 
+            HttpResponse httpResponse = new HttpResponse();
+            httpResponse.Clear();
+
             if (bodyResponse != "")
             {
-                HttpResponse httpResponse = new HttpResponse();
-
-                httpResponse.Clear();
                 httpResponse.SetBegin(200);
-                httpResponse.SetHeader("Content-Type", "application/json; charset=UTF-8");
+                httpResponse.SetContentType(".json");
                 httpResponse.SetHeader("Access-Control-Allow-Origin", "*");
                 httpResponse.SetBody(bodyResponse);
-
-                SendResponseAsync(httpResponse);
             }
             else
             {
-                SendResponseAsync(Response.MakeErrorResponse("Error.", 404));
+                string[] fileList = { "/", "/index.html", "/style.css", "/main.js" };
+
+                if (fileList.Contains(key))
+                {
+                    httpResponse.SetBegin(200);
+                    httpResponse.SetHeader("Cache-Control", $"max-age={TimeSpan.FromHours(1).Seconds}");
+
+                    if ((key == fileList[0]) || (key == fileList[1]))
+                    {
+                        httpResponse.SetContentType(".html");
+                        httpResponse.SetBody(File.ReadAllText($"www{fileList[1]}"));
+                    }
+                    else
+                    {
+                        httpResponse.SetContentType(Path.GetExtension(key));
+                        httpResponse.SetBody(File.ReadAllText($"www{key}"));
+                    }
+                }
+                else
+                {
+                    httpResponse.SetBegin(404);
+                    httpResponse.SetBody("");
+                }
             }
+
+            SendResponseAsync(httpResponse);
         }
 
         private string List(string endpoint, string gameTitleId = "")
