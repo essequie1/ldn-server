@@ -272,6 +272,7 @@ namespace LanPlayServer
 
             if (request.ExternalProxyPort != 0 && !IsProxyReachable(request.ExternalProxyPort))
             {
+                request.ExternalProxyPort = 0;
                 SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.PortUnreachable }));
             }
 
