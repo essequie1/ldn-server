@@ -169,15 +169,15 @@ namespace LanPlayServer
             session.SendAsync(_protocol.Encode(PacketId.ExternalProxy, configCopy));
         }
 
-        public void Connect(LdnSession session, NodeInfo node)
+        public bool Connect(LdnSession session, NodeInfo node)
         {
             _lock.EnterWriteLock();
 
-            if (_closed)
+            if (_closed || _info.Ldn.NodeCount == _info.Ldn.NodeCountMax)
             {
                 _lock.ExitWriteLock();
 
-                return;
+                return false;
             }
 
             uint ip = _dhcp.RequestIpV4();
@@ -207,6 +207,8 @@ namespace LanPlayServer
             session.SendAsync(_protocol.Encode(PacketId.Connected, _info));
 
             _lock.ExitWriteLock();
+
+            return true;
         }
 
         public void RemoveFromInfo(uint ip)

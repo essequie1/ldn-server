@@ -321,8 +321,27 @@ namespace LanPlayServer
 
             HostedGame game = _tcpServer.FindGame(id);
 
-            if (game != null && game.Players < 8)
+            if (game != null)
             {
+                NetworkInfo gameInfo = game.Info;
+
+                // Node 0 will contain the expected version (the host). If there is no match, we cannot connect.
+                uint hostVersion = gameInfo.Ldn.Nodes[0].LocalCommunicationVersion;
+                uint clientVersion = connectNetworkData.LocalCommunicationVersion;
+
+                if (clientVersion > hostVersion)
+                {
+                    SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.VersionTooHigh }));
+
+                    return;
+                }
+                else if (clientVersion < hostVersion)
+                {
+                    SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.VersionTooLow }));
+
+                    return;
+                }
+
                 NodeInfo myNode = new NodeInfo
                 {
                     Ipv4Address               = IpAddress,
@@ -333,7 +352,14 @@ namespace LanPlayServer
                     LocalCommunicationVersion = (ushort)connectNetworkData.LocalCommunicationVersion
                 };
 
-                game.Connect(this, myNode);
+                bool result = game.Connect(this, myNode);
+
+                if (!result)
+                {
+                    // There wasn't enough room in the game.
+
+                    SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.TooManyPlayers }));
+                }
             }
         }
     }
