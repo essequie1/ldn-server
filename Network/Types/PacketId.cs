@@ -24,6 +24,7 @@
         SetAcceptPolicy,
         SetAdvertiseData,
 
+        Ping = 254,
         NetworkError = 255
     }
 }

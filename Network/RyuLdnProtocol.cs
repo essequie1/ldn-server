@@ -44,6 +44,7 @@ namespace LanPlayServer.Network
         public event Action<LdnHeader, ProxyDisconnectMessage> ProxyDisconnect;
 
         public event Action<LdnHeader, NetworkErrorMessage> NetworkError;
+        public event Action<LdnHeader, PingMessage> Ping;
 
         public RyuLdnProtocol()
         {
@@ -166,8 +167,8 @@ namespace LanPlayServer.Network
                 case PacketId.SetAdvertiseData:
                     SetAdvertiseData?.Invoke(header, data);
                     break;
-                case PacketId.SyncNetwork:
-                    SyncNetwork?.Invoke(header, ParseDefault<NetworkInfo>(data));
+                case PacketId.SyncNetwork: 
+                    SyncNetwork?.Invoke(header, ParseDefault<NetworkInfo>(data)); 
                     break;
                 case PacketId.Scan:
                     Scan?.Invoke(header, ParseDefault<ScanFilter>(data));
@@ -208,6 +209,9 @@ namespace LanPlayServer.Network
                     ProxyDisconnect?.Invoke(header, ParseDefault<ProxyDisconnectMessage>(data));
                     break;
 
+                case PacketId.Ping:
+                    Ping?.Invoke(header, ParseDefault<PingMessage>(data));
+                    break;
                 case PacketId.NetworkError:
                     NetworkError?.Invoke(header, ParseDefault<NetworkErrorMessage>(data));
                     break;
