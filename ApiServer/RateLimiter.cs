@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 
 namespace LanPlayServer
@@ -34,7 +33,7 @@ namespace LanPlayServer
                 {
                     _rateLimiterBucket[ipAddress] = new RateLimiterBucket()
                     {
-                        Count = 1,
+                        Count     = 1,
                         StartTime = DateTime.Now
                     };
 
@@ -43,11 +42,11 @@ namespace LanPlayServer
                 else
                 {
                     RateLimiterBucket rateLimiterBucket = _rateLimiterBucket[ipAddress];
-                    TimeSpan elapsedTime = DateTime.Now - rateLimiterBucket.StartTime;
+                    TimeSpan          elapsedTime       = DateTime.Now - rateLimiterBucket.StartTime;
 
                     if (elapsedTime >= TimeSpan.FromMilliseconds(_rateLimitTime))
                     {
-                        rateLimiterBucket.Count = 1;
+                        rateLimiterBucket.Count     = 1;
                         rateLimiterBucket.StartTime = DateTime.Now;
                     }
                     else

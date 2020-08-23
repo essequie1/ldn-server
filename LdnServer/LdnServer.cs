@@ -113,7 +113,7 @@ namespace LanPlayServer
 
                 if (filter.Flag.HasFlag(ScanFilterFlag.NetworkType))
                 {
-                    if (scanInfo.Common.NetworkType != filter.NetworkType)
+                    if (scanInfo.Common.NetworkType != (byte)filter.NetworkType)
                     {
                         continue;
                     }
@@ -151,6 +151,7 @@ namespace LanPlayServer
         public override bool Stop()
         {
             _cancel.Cancel();
+
             return base.Stop();
         }
 

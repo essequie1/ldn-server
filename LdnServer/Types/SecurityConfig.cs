@@ -2,12 +2,12 @@
 
 namespace Ryujinx.HLE.HOS.Services.Ldn.Types
 {
-    [StructLayout(LayoutKind.Sequential, Size = 0x44, CharSet = CharSet.Ansi)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x44)]
     struct SecurityConfig
     {
-        public ushort SecurityMode;
-        public ushort PassphraseSize;
+        public SecurityMode SecurityMode;
+        public ushort       PassphraseSize;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 0x40)]
-        public byte[] Passphrase;
+        public byte[]       Passphrase;
     }
 }

@@ -67,14 +67,16 @@ namespace LanPlayServer
             }
             else
             {
-                long ticks = Stopwatch.GetTimestamp();
+                long ticks      = Stopwatch.GetTimestamp();
                 long deltaTicks = ticks - _lastMessageTicks;
-                long deltaMs = deltaTicks / (Stopwatch.Frequency / 1000);
+                long deltaMs    = deltaTicks / (Stopwatch.Frequency / 1000);
 
                 if (deltaMs > LdnServer.InactivityPingFrequency)
                 {
                     byte pingId = _pingId++;
+
                     _waitingPingID = pingId;
+
                     SendAsync(_protocol.Encode(PacketId.Ping, new PingMessage { Id = pingId, Requester = 0 }));
                 }
             }
@@ -266,7 +268,7 @@ namespace LanPlayServer
                     Channel     = 0,
                     LinkLevel   = 3,
                     NetworkType = 2,
-                    Bssid       = new byte[6],
+                    MacAddress  = new byte[6],
                     Ssid        = new Ssid()
                     {
                         Length = 32,
@@ -276,13 +278,14 @@ namespace LanPlayServer
                 Ldn = new LdnNetworkInfo()
                 {
                     SecurityMode      = 0,
-                    UnknownRandom     = new byte[0x10],
+                    SecurityParameter = new byte[0x10],
                     NodeCountMax      = request.NetworkConfig.NodeCountMax,
                     NodeCount         = 0,
                     Nodes             = new NodeInfo[8],
                     AdvertiseDataSize = (ushort)advertiseData.Length,
                     AdvertiseData     = advertiseData,
-                    Unknown           = new byte[0x94]
+                    Unknown2          = new byte[0x8C],
+                    AuthenticationId  = 0
                 }
             };
 
@@ -297,7 +300,7 @@ namespace LanPlayServer
                 IsConnected               = 0x01,
                 UserName                  = request.UserConfig.UserName,
                 LocalCommunicationVersion = request.NetworkConfig.LocalCommunicationVersion,
-                Unknown2                  = new byte[0x10]
+                Reserved2                 = new byte[0x10]
             };
 
             for (int i = 0; i < 8; i++)
@@ -306,7 +309,7 @@ namespace LanPlayServer
                 {
                     MacAddress = new byte[6],
                     UserName   = new byte[0x21],
-                    Unknown2   = new byte[0x10]
+                    Reserved2  = new byte[0x10]
                 };
             }
 
@@ -354,8 +357,11 @@ namespace LanPlayServer
 
         private void HandleConnect(LdnHeader ldnPacket, ConnectRequest request)
         {
-            ConnectNetworkData connectNetworkData = request.Data;
-            NetworkInfo        networkInfo        = request.Info;
+            SecurityConfig securityConfig            = request.SecurityConfig;
+            UserConfig     userConfig                = request.UserConfig;
+            uint           localCommunicationVersion = request.LocalCommunicationVersion;
+            uint           optionUnknown             = request.OptionUnknown;
+            NetworkInfo    networkInfo               = request.NetworkInfo;
 
             string id = LdnHelper.ByteArrayToString(networkInfo.NetworkId.SessionId);
 
@@ -366,8 +372,8 @@ namespace LanPlayServer
                 NetworkInfo gameInfo = game.Info;
 
                 // Node 0 will contain the expected version (the host). If there is no match, we cannot connect.
-                uint hostVersion = gameInfo.Ldn.Nodes[0].LocalCommunicationVersion;
-                uint clientVersion = connectNetworkData.LocalCommunicationVersion;
+                uint hostVersion   = gameInfo.Ldn.Nodes[0].LocalCommunicationVersion;
+                uint clientVersion = localCommunicationVersion;
 
                 if (clientVersion > hostVersion)
                 {
@@ -388,8 +394,8 @@ namespace LanPlayServer
                     MacAddress                = MacAddress,
                     NodeId                    = 0, // Will be populated on insert.
                     IsConnected               = 0x01,
-                    UserName                  = connectNetworkData.UserConfig.UserName,
-                    LocalCommunicationVersion = (ushort)connectNetworkData.LocalCommunicationVersion
+                    UserName                  = userConfig.UserName,
+                    LocalCommunicationVersion = (ushort)localCommunicationVersion
                 };
 
                 bool result = game.Connect(this, myNode);

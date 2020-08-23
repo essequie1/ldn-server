@@ -2,12 +2,12 @@
 
 namespace Ryujinx.HLE.HOS.Services.Ldn.Types
 {
-    [StructLayout(LayoutKind.Sequential, Size = 0x10, CharSet = CharSet.Ansi)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x10)]
     struct IntentId
     {
         public ulong  LocalCommunicationId;
-        public ushort Unknown1;
+        public ushort Reserved1;
         public ushort SceneId;
-        public uint   Unknown2;
+        public uint   Reserved2;
     }
 }

@@ -8,13 +8,13 @@ namespace LanPlayServer.Network
     class RyuLdnProtocol
     {
         private const byte CurrentProtocolVersion = 0;
+        private const int  Magic                  = ('R' << 0) | ('L' << 8) | ('D' << 16) | ('N' << 24);
+        private const int  MaxPacketSize          = 131072;
 
-        private const int Magic = ('R' << 0) | ('L' << 8) | ('D' << 16) | ('N' << 24);
-        private const int MaxPacketSize = 131072;
         private readonly int _headerSize = Marshal.SizeOf<LdnHeader>();
 
-        private byte[] _buffer = new byte[MaxPacketSize];
-        private int _bufferEnd = 0;
+        private byte[] _buffer    = new byte[MaxPacketSize];
+        private int    _bufferEnd = 0;
 
         // Client Packets.
         public event Action<LdnHeader, PassphraseMessage> Passphrase;
@@ -43,12 +43,11 @@ namespace LanPlayServer.Network
         public event Action<LdnHeader, ProxyDataHeader, byte[]> ProxyData;
         public event Action<LdnHeader, ProxyDisconnectMessage> ProxyDisconnect;
 
+        // Lifecycle Packets.
         public event Action<LdnHeader, NetworkErrorMessage> NetworkError;
         public event Action<LdnHeader, PingMessage> Ping;
 
-        public RyuLdnProtocol()
-        {
-        }
+        public RyuLdnProtocol() { }
 
         public void Reset()
         {
@@ -69,7 +68,7 @@ namespace LanPlayServer.Network
 
                     Array.Copy(data, index + offset, _buffer, _bufferEnd, copyable);
 
-                    index += copyable;
+                    index      += copyable;
                     _bufferEnd += copyable;
                 }
 
@@ -100,7 +99,7 @@ namespace LanPlayServer.Network
 
                     Array.Copy(data, index + offset, _buffer, _bufferEnd, copyable);
 
-                    index += copyable;
+                    index      += copyable;
                     _bufferEnd += copyable;
 
                     if (finalSize == _bufferEnd)
@@ -126,7 +125,7 @@ namespace LanPlayServer.Network
 
         private (T, byte[]) ParseWithData<T>(byte[] data)
         {
-            T str = default;
+            T   str  = default;
             int size = Marshal.SizeOf(str);
 
             byte[] remainder = new byte[data.Length - size];
@@ -143,78 +142,142 @@ namespace LanPlayServer.Network
         {
             switch ((PacketId)header.Type)
             {
+                // Client Packets.
                 case PacketId.Passphrase:
-                    Passphrase?.Invoke(header, ParseDefault<PassphraseMessage>(data));
-                    break;
+                    {
+                        Passphrase?.Invoke(header, ParseDefault<PassphraseMessage>(data));
+                    
+                        break;
+                    }
+                case PacketId.Connected:
+                    {
+                        Connected?.Invoke(header, ParseDefault<NetworkInfo>(data));
+
+                        break;
+                    }
+                case PacketId.SyncNetwork:
+                    {
+                        SyncNetwork?.Invoke(header, ParseDefault<NetworkInfo>(data));
+
+                        break;
+                    }
+                case PacketId.ScanReply:
+                    {
+                        ScanReply?.Invoke(header, ParseDefault<NetworkInfo>(data));
+
+                        break;
+                    }
+                case PacketId.ScanReplyEnd:
+                    {
+                        ScanReplyEnd?.Invoke(header);
+
+                        break;
+                    }
+                case PacketId.Disconnect:
+                    {
+                        Disconnected?.Invoke(header, ParseDefault<DisconnectMessage>(data));
+
+                        break;
+                    }
+
+                // External Proxy Packets.
+                case PacketId.ExternalProxy:
+                    {
+                        ExternalProxy?.Invoke(header, ParseDefault<ExternalProxyConfig>(data));
+
+                        break;
+                    }
+                case PacketId.ExternalProxyState:
+                    {
+                        ExternalProxyState?.Invoke(header, ParseDefault<ExternalProxyConnectionState>(data));
+
+                        break;
+                    }
+                case PacketId.ExternalProxyToken:
+                    {
+                        ExternalProxyToken?.Invoke(header, ParseDefault<ExternalProxyToken>(data));
+
+                        break;
+                    }
+
+                // Server Packets.
                 case PacketId.CreateAccessPoint:
                     {
                         (CreateAccessPointRequest packet, byte[] extraData) = ParseWithData<CreateAccessPointRequest>(data);
                         CreateAccessPoint?.Invoke(header, packet, extraData);
                         break;
                     }
-                case PacketId.ExternalProxy:
-                    ExternalProxy?.Invoke(header, ParseDefault<ExternalProxyConfig>(data));
-                    break;
-                case PacketId.ExternalProxyState:
-                    ExternalProxyState?.Invoke(header, ParseDefault<ExternalProxyConnectionState>(data));
-                    break;
-                case PacketId.ExternalProxyToken:
-                    ExternalProxyToken?.Invoke(header, ParseDefault<ExternalProxyToken>(data));
-                    break;
                 case PacketId.SetAcceptPolicy:
-                    SetAcceptPolicy?.Invoke(header, ParseDefault<SetAcceptPolicyRequest>(data));
-                    break;
+                    {
+                        SetAcceptPolicy?.Invoke(header, ParseDefault<SetAcceptPolicyRequest>(data));
+                    
+                        break;
+                    }
                 case PacketId.SetAdvertiseData:
-                    SetAdvertiseData?.Invoke(header, data);
-                    break;
-                case PacketId.SyncNetwork: 
-                    SyncNetwork?.Invoke(header, ParseDefault<NetworkInfo>(data)); 
-                    break;
-                case PacketId.Scan:
-                    Scan?.Invoke(header, ParseDefault<ScanFilter>(data));
-                    break;
-                case PacketId.ScanReply:
-                    ScanReply?.Invoke(header, ParseDefault<NetworkInfo>(data));
-                    break;
-                case PacketId.ScanReplyEnd:
-                    ScanReplyEnd?.Invoke(header);
-                    break;
+                    {
+                        SetAdvertiseData?.Invoke(header, data);
+                    
+                        break;
+                    }
                 case PacketId.Connect:
-                    Connect?.Invoke(header, ParseDefault<ConnectRequest>(data));
-                    break;
-                case PacketId.Connected:
-                    Connected?.Invoke(header, ParseDefault<NetworkInfo>(data));
-                    break;
-                case PacketId.Disconnect:
-                    Disconnected?.Invoke(header, ParseDefault<DisconnectMessage>(data));
-                    break;
+                    {
+                        Connect?.Invoke(header, ParseDefault<ConnectRequest>(data));
+                    
+                        break;
+                    }
+                case PacketId.Scan:
+                    {
+                        Scan?.Invoke(header, ParseDefault<ScanFilter>(data));
+                    
+                        break;
+                    }
 
                 // Proxy Packets
                 case PacketId.ProxyConfig:
-                    ProxyConfig?.Invoke(header, ParseDefault<ProxyConfig>(data));
-                    break;
+                    {
+                        ProxyConfig?.Invoke(header, ParseDefault<ProxyConfig>(data));
+                    
+                        break;
+                    }
                 case PacketId.ProxyConnect:
-                    ProxyConnect?.Invoke(header, ParseDefault<ProxyConnectRequest>(data));
-                    break;
+                    {
+                        ProxyConnect?.Invoke(header, ParseDefault<ProxyConnectRequest>(data));
+                    
+                        break;
+                    }
                 case PacketId.ProxyConnectReply:
-                    ProxyConnectReply?.Invoke(header, ParseDefault<ProxyConnectResponse>(data));
-                    break;
+                    {
+                        ProxyConnectReply?.Invoke(header, ParseDefault<ProxyConnectResponse>(data));
+                    
+                        break;
+                    }
                 case PacketId.ProxyData:
                     {
                         (ProxyDataHeader packet, byte[] extraData) = ParseWithData<ProxyDataHeader>(data);
                         ProxyData?.Invoke(header, packet, extraData);
+                        
                         break;
                     }
                 case PacketId.ProxyDisconnect:
-                    ProxyDisconnect?.Invoke(header, ParseDefault<ProxyDisconnectMessage>(data));
-                    break;
+                    {
+                        ProxyDisconnect?.Invoke(header, ParseDefault<ProxyDisconnectMessage>(data));
+                    
+                        break;
+                    }
 
+                // Lifecycle Packets.
                 case PacketId.Ping:
-                    Ping?.Invoke(header, ParseDefault<PingMessage>(data));
-                    break;
+                    {
+                        Ping?.Invoke(header, ParseDefault<PingMessage>(data));
+                    
+                        break;
+                    }
                 case PacketId.NetworkError:
-                    NetworkError?.Invoke(header, ParseDefault<NetworkErrorMessage>(data));
-                    break;
+                    {
+                        NetworkError?.Invoke(header, ParseDefault<NetworkErrorMessage>(data));
+                    
+                        break;
+                    }
 
                 default: break;
             }
@@ -224,9 +287,9 @@ namespace LanPlayServer.Network
         {
             return new LdnHeader()
             {
-                Magic = Magic,
-                Version = CurrentProtocolVersion,
-                Type = (byte)type,
+                Magic    = Magic,
+                Version  = CurrentProtocolVersion,
+                Type     = (byte)type,
                 DataSize = dataSize
             };
         }

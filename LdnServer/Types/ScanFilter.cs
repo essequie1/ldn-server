@@ -2,16 +2,16 @@
 
 namespace Ryujinx.HLE.HOS.Services.Ldn.Types
 {
-    [StructLayout(LayoutKind.Sequential, Size = 0x60, CharSet = CharSet.Ansi)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x60)]
     struct ScanFilter
     {
-        public NetworkId      NetworkId; //0x20
-        public uint           NetworkType;
+        public NetworkId      NetworkId;
+        public NetworkType    NetworkType;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 6)]
         public byte[]         MacAddress;
         public Ssid           Ssid;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 0x10)]
-        public byte[]         Unknown;
+        public byte[]         Reserved;
         public ScanFilterFlag Flag;
     }
 }

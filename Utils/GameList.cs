@@ -7,12 +7,12 @@ namespace LanPlayServer
 {
     public class Game
     {
-        public ulong ID;
+        public ulong  ID;
         public string Name;
 
         public Game(ulong id, string name)
         {
-            ID = id;
+            ID   = id;
             Name = name;
         }
     }
@@ -49,17 +49,12 @@ namespace LanPlayServer
                     }
                 }
             }
-            catch (Exception)
-            {
-
-            }
+            catch (Exception) { }
         }
 
         public static Game GetGameById(ulong id)
         {
-            Game result;
-
-            _games.TryGetValue(id, out result);
+            _games.TryGetValue(id, out Game result);
 
             return result;
         }

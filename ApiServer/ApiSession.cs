@@ -41,7 +41,7 @@ namespace LanPlayServer
                     {
                         urlEndpoint = urlEndpoint.Replace(ApiEndpoints.Games + "?titleid=", "", StringComparison.InvariantCultureIgnoreCase);
 
-                        bool isTitleId = Regex.IsMatch(urlEndpoint, "^[a-z0-9/._-]{16}$");
+                        bool isTitleId = Regex.IsMatch(urlEndpoint, "^[a-zA-Z0-9/._-]{16}$");
                         if (isTitleId)
                         {
                             bodyResponse = List(ApiEndpoints.Games, urlEndpoint);
@@ -210,7 +210,7 @@ namespace LanPlayServer
                 }
                 else
                 {
-                    return JsonSerializerHelper.Serialize(gamesAnalytics.Where(game => game.TitleId == gameTitleId).ToList());
+                    return JsonSerializerHelper.Serialize(gamesAnalytics.Where(game => game.TitleId.ToLower() == gameTitleId.ToLower()).ToList());
                 }
             }
             else

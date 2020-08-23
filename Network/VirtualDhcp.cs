@@ -23,8 +23,8 @@ namespace LanPlayServer
 
         public VirtualDhcp(uint baseAddress, uint subnetMask)
         {
-            _baseAddress = baseAddress;
-            _subnetMask = subnetMask;
+            _baseAddress   = baseAddress;
+            _subnetMask    = subnetMask;
             _invSubnetMask = ~subnetMask;
 
             _nextIp = baseAddress + 1;
