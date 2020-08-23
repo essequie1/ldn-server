@@ -6,18 +6,25 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace LanPlayServer
 {
     class LdnServer : TcpServer
     {
-        public ConcurrentDictionary<string, HostedGame> HostedGames;
+        public static readonly int InactivityPingFrequency = 10000;
+
+        public ConcurrentDictionary<string, HostedGame> HostedGames = new ConcurrentDictionary<string, HostedGame>();
         public bool UseProxy => true;
 
+        private CancellationTokenSource _cancel = new CancellationTokenSource();
+
         public LdnServer(IPAddress address, int port) : base(address, port)
-        {
-            HostedGames   = new ConcurrentDictionary<string, HostedGame>();
+        { 
             OptionNoDelay = true;
+
+            Task.Run(BackgroundPingTask);
         }
 
         public HostedGame CreateGame(string id, NetworkInfo info)
@@ -139,6 +146,32 @@ namespace LanPlayServer
         protected override void OnError(SocketError error)
         {
             Console.WriteLine($"LDN TCP server caught an error with code {error}");
+        }
+
+        public override bool Stop()
+        {
+            _cancel.Cancel();
+            return base.Stop();
+        }
+
+        private async Task BackgroundPingTask()
+        {
+            while (!IsDisposed)
+            {
+                foreach (KeyValuePair<Guid, TcpSession> session in Sessions)
+                {
+                    (session.Value as LdnSession).Ping();
+                }
+
+                try
+                {
+                    await Task.Delay(InactivityPingFrequency, _cancel.Token);
+                }
+                catch (TaskCanceledException)
+                {
+                    return;
+                }
+            }
         }
     }
 }

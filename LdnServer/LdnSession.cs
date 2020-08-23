@@ -9,6 +9,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace LanPlayServer
 {
@@ -24,6 +25,10 @@ namespace LanPlayServer
         private LdnServer      _tcpServer;
         private RyuLdnProtocol _protocol;
         private NetworkInfo[]  _scanBuffer = new NetworkInfo[1];
+
+        private long _lastMessageTicks = Stopwatch.GetTimestamp();
+        private int _waitingPingID = -1;
+        private byte _pingId = 0;
 
         public LdnSession(LdnServer server) : base(server)
         {
@@ -49,6 +54,30 @@ namespace LanPlayServer
             _protocol.ProxyDisconnect   += HandleProxyDisconnect;
 
             _protocol.ExternalProxyState += HandleExternalProxyState;
+            _protocol.Ping               += HandlePing;
+        }
+
+        public void Ping()
+        {
+            if (_waitingPingID != -1)
+            {
+                // The last ping was not responded to. Force a disconnect (async).
+                Console.WriteLine($"Closing session with Id {Id} due to idle.");
+                Task.Run(Disconnect);
+            }
+            else
+            {
+                long ticks = Stopwatch.GetTimestamp();
+                long deltaTicks = ticks - _lastMessageTicks;
+                long deltaMs = deltaTicks / (Stopwatch.Frequency / 1000);
+
+                if (deltaMs > LdnServer.InactivityPingFrequency)
+                {
+                    byte pingId = _pingId++;
+                    _waitingPingID = pingId;
+                    SendAsync(_protocol.Encode(PacketId.Ping, new PingMessage { Id = pingId, Requester = 0 }));
+                }
+            }
         }
 
         private void DisconnectFromGame()
@@ -60,6 +89,15 @@ namespace LanPlayServer
             if (game?.Id == Id.ToString().Replace("-", ""))
             {
                 _tcpServer.CloseGame(game.Id);
+            }
+        }
+
+        private void HandlePing(LdnHeader header, PingMessage ping)
+        {
+            if (ping.Requester == 0)
+            {
+                // A response from this client. Still alive, reset the _waitingPingID. (getting the message will also reset the timer)
+                _waitingPingID = -1;
             }
         }
 
@@ -131,6 +169,8 @@ namespace LanPlayServer
             try
             {
                 _protocol.Read(buffer, (int)offset, (int)size);
+
+                _lastMessageTicks = Stopwatch.GetTimestamp();
             }
             catch (Exception e)
             {
