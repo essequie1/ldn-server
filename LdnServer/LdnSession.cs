@@ -94,7 +94,7 @@ namespace LanPlayServer
 
         private void HandlePing(LdnHeader header, PingMessage ping)
         {
-            if (ping.Requester == 0)
+            if (ping.Requester == 0 && ping.Id == _waitingPingID)
             {
                 // A response from this client. Still alive, reset the _waitingPingID. (getting the message will also reset the timer)
                 _waitingPingID = -1;
