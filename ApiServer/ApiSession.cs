@@ -58,17 +58,23 @@ namespace LanPlayServer
                 }
                 else
                 {
-                    string[] fileList = { "/", "/index.html", "/style.css", "/main.js" };
+                    List<string> fileList = Directory.EnumerateFiles("www", "*", SearchOption.AllDirectories).Select(f => f.Substring(3).Replace("\\", "/")).ToList();
+                    fileList.Add("/");
 
                     if (fileList.Contains(urlEndpoint))
                     {
                         httpResponse.SetBegin(200);
                         httpResponse.SetHeader("Cache-Control", $"max-age={TimeSpan.FromHours(1).Seconds}");
 
-                        if ((urlEndpoint == fileList[0]) || (urlEndpoint == fileList[1]))
+                        if ((urlEndpoint == "/") || (urlEndpoint == "/index.html"))
                         {
                             httpResponse.SetContentType(".html");
-                            httpResponse.SetBody(File.ReadAllText($"www{fileList[1]}"));
+                            httpResponse.SetBody(File.ReadAllText($"www/index.html"));
+                        }
+                        else if (Path.GetExtension(urlEndpoint) == ".png")
+                        {
+                            httpResponse.SetContentType(Path.GetExtension(urlEndpoint));
+                            httpResponse.SetBody(File.ReadAllBytes($"www{urlEndpoint}"));
                         }
                         else
                         {
