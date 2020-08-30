@@ -16,7 +16,6 @@ namespace LanPlayServer
 
         private ReaderWriterLockSlim _lock;
 
-        private LdnSession       _owner;
         private List<LdnSession> _players;
         private VirtualDhcp      _dhcp;
 
@@ -42,6 +41,9 @@ namespace LanPlayServer
         }
 
         public string Id { get; }
+
+        public LdnSession Owner { get; private set; }
+        public string OwnerId => Owner.StringId;
 
         private string _passphrase;
         public string Passphrase
@@ -76,13 +78,13 @@ namespace LanPlayServer
 
         public bool IsP2P { get; private set; }
 
-        public HostedGame(string id, NetworkInfo info)
+        public HostedGame(string id, NetworkInfo info, AddressList dhcpConfig)
         {
             Id = id;
 
             _lock    = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
             _players = new List<LdnSession>();
-            _dhcp    = new VirtualDhcp(NetworkBaseAddress, NetworkSubnetMask);
+            _dhcp    = new VirtualDhcp(NetworkBaseAddress, NetworkSubnetMask, dhcpConfig);
 
             _protocol = new RyuLdnProtocol();
 
@@ -108,11 +110,11 @@ namespace LanPlayServer
             return ipBytes;
         }
 
-        public void SetOwner(LdnSession session, CreateAccessPointRequest request)
+        public void SetOwner(LdnSession session, RyuNetworkConfig request)
         {
             _lock.EnterWriteLock();
 
-            _owner      = session;
+            Owner      = session;
             _passphrase = session.Passphrase;
 
             if (request.ExternalProxyPort != 0)
@@ -146,7 +148,7 @@ namespace LanPlayServer
             IPAddress address          = (session.Socket.RemoteEndPoint as IPEndPoint).Address;
             byte[]    addressBytes     = AddressTo16Byte(address);
             bool      sessionIsPrivate = address.AddressFamily == _externalConfig.AddressFamily && addressBytes.SequenceEqual(_externalConfig.ProxyIp);
-            byte[]    token            = LdnHelper.StringToByteArray(new Guid().ToString().Replace("-", ""));
+            byte[]    token            = LdnHelper.StringToByteArray(Guid.NewGuid().ToString().Replace("-", ""));
 
             // The proxy host needs to know about the new joiner.
 
@@ -158,7 +160,7 @@ namespace LanPlayServer
                 Token         = token
             };
 
-            _owner.SendAsync(_protocol.Encode(PacketId.ExternalProxyToken, tokenMsg));
+            Owner.SendAsync(_protocol.Encode(PacketId.ExternalProxyToken, tokenMsg));
 
             // Tell the joiner about the new proxy host.
 
@@ -180,7 +182,7 @@ namespace LanPlayServer
                 return false;
             }
 
-            uint ip = _dhcp.RequestIpV4();
+            uint ip = _dhcp.RequestIpV4(session.MacAddress);
             if (!session.SetIpV4(ip, NetworkSubnetMask, !IsP2P))
             {
                 _dhcp.ReturnIpV4(ip);
@@ -286,9 +288,34 @@ namespace LanPlayServer
             _lock.ExitReadLock();
         }
 
+        public void HandleReject(LdnSession sender, LdnHeader header, RejectRequest reject)
+        {
+            if (sender == Owner)
+            {
+                _lock.EnterWriteLock();
+
+                if (reject.NodeId >= _players.Count)
+                {
+                    sender.SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage() { Error = NetworkError.RejectFailed }));
+                }
+                else
+                {
+                    Disconnect(_players[(int)reject.NodeId], false);
+
+                    _lock.ExitWriteLock();
+                }
+            } 
+            else
+            {
+                sender.SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage() { Error = NetworkError.RejectFailed }));
+            }
+
+            sender.SendAsync(_protocol.Encode(PacketId.RejectReply));
+        }
+
         public void HandleSetAcceptPolicy(LdnSession sender, LdnHeader header, SetAcceptPolicyRequest policy)
         {
-            if (sender == _owner)
+            if (sender == Owner)
             {
                 _lock.EnterWriteLock();
 
@@ -302,7 +329,7 @@ namespace LanPlayServer
 
         public void HandleSetAdvertiseData(LdnSession sender, LdnHeader header, byte[] data)
         {
-            if (sender == _owner)
+            if (sender == Owner)
             {
                 _lock.EnterWriteLock();
 
@@ -320,7 +347,7 @@ namespace LanPlayServer
         {
             _lock.EnterWriteLock();
 
-            if (sender != _owner)
+            if (sender != Owner)
             {
                 // Only the owner can update external proxy state.
                 _lock.ExitWriteLock();
@@ -387,7 +414,7 @@ namespace LanPlayServer
 
             if (IsP2P && !expected)
             {
-                _owner.SendAsync(_protocol.Encode(PacketId.ExternalProxyState, new ExternalProxyConnectionState
+                Owner.SendAsync(_protocol.Encode(PacketId.ExternalProxyState, new ExternalProxyConnectionState
                 {
                     IpAddress = session.IpAddress,
                     Connected = false

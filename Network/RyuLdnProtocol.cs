@@ -7,7 +7,7 @@ namespace LanPlayServer.Network
 {
     class RyuLdnProtocol
     {
-        private const byte CurrentProtocolVersion = 0;
+        private const byte CurrentProtocolVersion = 1;
         private const int  Magic                  = ('R' << 0) | ('L' << 8) | ('D' << 16) | ('N' << 24);
         private const int  MaxPacketSize          = 131072;
 
@@ -31,9 +31,13 @@ namespace LanPlayServer.Network
 
         // Server Packets.
         public event Action<LdnHeader, CreateAccessPointRequest, byte[]> CreateAccessPoint;
+        public event Action<LdnHeader, CreateAccessPointPrivateRequest, byte[]> CreateAccessPointPrivate;
+        public event Action<LdnHeader, RejectRequest> Reject;
+        public event Action<LdnHeader> RejectReply;
         public event Action<LdnHeader, SetAcceptPolicyRequest> SetAcceptPolicy;
         public event Action<LdnHeader, byte[]> SetAdvertiseData;
         public event Action<LdnHeader, ConnectRequest> Connect;
+        public event Action<LdnHeader, ConnectPrivateRequest> ConnectPrivate;
         public event Action<LdnHeader, ScanFilter> Scan;
 
         // Proxy Packets.
@@ -146,7 +150,7 @@ namespace LanPlayServer.Network
                 case PacketId.Passphrase:
                     {
                         Passphrase?.Invoke(header, ParseDefault<PassphraseMessage>(data));
-                    
+
                         break;
                     }
                 case PacketId.Connected:
@@ -167,6 +171,7 @@ namespace LanPlayServer.Network
 
                         break;
                     }
+
                 case PacketId.ScanReplyEnd:
                     {
                         ScanReplyEnd?.Invoke(header);
@@ -184,19 +189,19 @@ namespace LanPlayServer.Network
                 case PacketId.ExternalProxy:
                     {
                         ExternalProxy?.Invoke(header, ParseDefault<ExternalProxyConfig>(data));
-
+                        
                         break;
                     }
                 case PacketId.ExternalProxyState:
                     {
                         ExternalProxyState?.Invoke(header, ParseDefault<ExternalProxyConnectionState>(data));
-
+                        
                         break;
                     }
                 case PacketId.ExternalProxyToken:
                     {
                         ExternalProxyToken?.Invoke(header, ParseDefault<ExternalProxyToken>(data));
-
+                        
                         break;
                     }
 
@@ -205,6 +210,24 @@ namespace LanPlayServer.Network
                     {
                         (CreateAccessPointRequest packet, byte[] extraData) = ParseWithData<CreateAccessPointRequest>(data);
                         CreateAccessPoint?.Invoke(header, packet, extraData);
+                        break;
+                    }
+                case PacketId.CreateAccessPointPrivate:
+                    {
+                        (CreateAccessPointPrivateRequest packet, byte[] extraData) = ParseWithData<CreateAccessPointPrivateRequest>(data);
+                        CreateAccessPointPrivate?.Invoke(header, packet, extraData);
+                        break;
+                    }
+                case PacketId.Reject:
+                    {
+                        Reject?.Invoke(header, ParseDefault<RejectRequest>(data));
+
+                        break;
+                    }
+                case PacketId.RejectReply:
+                    {
+                        RejectReply?.Invoke(header);
+
                         break;
                     }
                 case PacketId.SetAcceptPolicy:
@@ -223,6 +246,12 @@ namespace LanPlayServer.Network
                     {
                         Connect?.Invoke(header, ParseDefault<ConnectRequest>(data));
                     
+                        break;
+                    }
+                case PacketId.ConnectPrivate:
+                    {
+                        ConnectPrivate?.Invoke(header, ParseDefault<ConnectPrivateRequest>(data));
+
                         break;
                     }
                 case PacketId.Scan:
@@ -254,8 +283,9 @@ namespace LanPlayServer.Network
                 case PacketId.ProxyData:
                     {
                         (ProxyDataHeader packet, byte[] extraData) = ParseWithData<ProxyDataHeader>(data);
+
                         ProxyData?.Invoke(header, packet, extraData);
-                        
+
                         break;
                     }
                 case PacketId.ProxyDisconnect:
@@ -306,7 +336,7 @@ namespace LanPlayServer.Network
         public byte[] Encode(PacketId type, byte[] data)
         {
             LdnHeader header = GetHeader(type, data.Length);
-
+            
             byte[] result = LdnHelper.StructureToByteArray(header, data.Length);
 
             Array.Copy(data, 0, result, Marshal.SizeOf<LdnHeader>(), data.Length);

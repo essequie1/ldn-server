@@ -12,6 +12,13 @@ namespace LanPlayServer.Network.Types
         VersionTooLow,
         VersionTooHigh,
 
+        ConnectFailure,
+        ConnectNotFound,
+        ConnectTimeout,
+        ConnectRejected,
+
+        RejectFailed,
+
         Unknown = -1
     }
 

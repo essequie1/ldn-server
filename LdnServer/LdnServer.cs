@@ -27,16 +27,32 @@ namespace LanPlayServer
             Task.Run(BackgroundPingTask);
         }
 
-        public HostedGame CreateGame(string id, NetworkInfo info)
+        public HostedGame CreateGame(string id, NetworkInfo info, AddressList dhcpConfig, string oldOwnerID)
         {
-            HostedGame game = new HostedGame(id, info);
+            HostedGame game = new HostedGame(id, info, dhcpConfig);
+            bool idTaken = false;
 
             HostedGames.AddOrUpdate(id, game, (id, oldGame) =>
             {
-                oldGame.Close();
+                if (oldGame.OwnerId == oldOwnerID)
+                {
+                    oldGame.Close();
 
-                return game;
+                    return game;
+                }
+                else
+                {
+                    game.Close();
+                    idTaken = true;
+
+                    return oldGame;
+                }
             });
+
+            if (idTaken)
+            {
+                return null;
+            }
 
             return game;
         }

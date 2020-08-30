@@ -4,14 +4,18 @@
     {
         Passphrase,
         CreateAccessPoint,
+        CreateAccessPointPrivate,
         ExternalProxy,
         ExternalProxyToken,
         ExternalProxyState,
         SyncNetwork,
+        Reject,
+        RejectReply,
         Scan,
         ScanReply,
         ScanReplyEnd,
         Connect,
+        ConnectPrivate,
         Connected,
         Disconnect,
 

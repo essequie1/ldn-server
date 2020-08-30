@@ -22,6 +22,8 @@ namespace LanPlayServer
         public uint       IpAddress   { get; private set; }
         public string     Passphrase  { get; private set; } = "";
 
+        public string     StringId => Id.ToString().Replace("-", "");
+
         private LdnServer      _tcpServer;
         private RyuLdnProtocol _protocol;
         private NetworkInfo[]  _scanBuffer = new NetworkInfo[1];
@@ -40,13 +42,16 @@ namespace LanPlayServer
 
             _protocol = new RyuLdnProtocol();
 
-            _protocol.Passphrase        += HandlePassphrase;
-            _protocol.CreateAccessPoint += HandleCreateAccessPoint;
-            _protocol.SetAcceptPolicy   += HandleSetAcceptPolicy;
-            _protocol.SetAdvertiseData  += HandleSetAdvertiseData;
-            _protocol.Scan              += HandleScan;
-            _protocol.Connect           += HandleConnect;
-            _protocol.Disconnected      += HandleDisconnect;
+            _protocol.Passphrase               += HandlePassphrase;
+            _protocol.CreateAccessPoint        += HandleCreateAccessPoint;
+            _protocol.CreateAccessPointPrivate += HandleCreateAccessPointPrivate;
+            _protocol.Reject                   += HandleReject;
+            _protocol.SetAcceptPolicy          += HandleSetAcceptPolicy;
+            _protocol.SetAdvertiseData         += HandleSetAdvertiseData;
+            _protocol.Scan                     += HandleScan;
+            _protocol.Connect                  += HandleConnect;
+            _protocol.ConnectPrivate           += HandleConnectPrivate;
+            _protocol.Disconnected             += HandleDisconnect;
 
             _protocol.ProxyConnect      += HandleProxyConnect;
             _protocol.ProxyConnectReply += HandleProxyConnectReply;
@@ -88,7 +93,7 @@ namespace LanPlayServer
 
             game?.Disconnect(this, false);
 
-            if (game?.Id == Id.ToString().Replace("-", ""))
+            if (game?.Owner == this)
             {
                 _tcpServer.CloseGame(game.Id);
             }
@@ -115,6 +120,11 @@ namespace LanPlayServer
         private void HandleDisconnect(LdnHeader header, DisconnectMessage message)
         {
             DisconnectFromGame();
+        }
+
+        private void HandleReject(LdnHeader header, RejectRequest reject)
+        {
+            CurrentGame?.HandleReject(this, header, reject);
         }
 
         private void HandleSetAcceptPolicy(LdnHeader header, SetAcceptPolicyRequest policy)
@@ -245,12 +255,30 @@ namespace LanPlayServer
                 return;
             }
 
-            AccessPointConfigToNetworkInfo(request, advertiseData);
+            string id = Guid.NewGuid().ToString().Replace("-", "");
+
+            AddressList dhcpConfig = new AddressList();
+            dhcpConfig.Addresses = new AddressEntry[8];
+
+            AccessPointConfigToNetworkInfo(id, request.NetworkConfig, request.UserConfig, request.RyuNetworkConfig, dhcpConfig, advertiseData);
         }
 
-        private void AccessPointConfigToNetworkInfo(CreateAccessPointRequest request, byte[] advertiseData)
+        private void HandleCreateAccessPointPrivate(LdnHeader ldnPacket, CreateAccessPointPrivateRequest request, byte[] advertiseData)
         {
-            string id = Id.ToString().Replace("-", "");
+            if (CurrentGame != null)
+            {
+                // Cannot create an access point while in a game.
+                return;
+            }
+
+            string id = LdnHelper.ByteArrayToString(request.SecurityParameter.SessionId);
+
+            AccessPointConfigToNetworkInfo(id, request.NetworkConfig, request.UserConfig, request.RyuNetworkConfig, request.AddressList, advertiseData);
+        }
+
+        private void AccessPointConfigToNetworkInfo(string id, NetworkConfig networkConfig, UserConfig userConfig, RyuNetworkConfig ryuNetworkConfig, AddressList dhcpConfig, byte[] advertiseData)
+        {
+            string userId = StringId;
 
             NetworkInfo networkInfo = new NetworkInfo()
             {
@@ -258,8 +286,8 @@ namespace LanPlayServer
                 {
                     IntentId = new IntentId()
                     {
-                        LocalCommunicationId = request.NetworkConfig.IntentId.LocalCommunicationId,
-                        SceneId              = request.NetworkConfig.IntentId.SceneId
+                        LocalCommunicationId = networkConfig.IntentId.LocalCommunicationId,
+                        SceneId              = networkConfig.IntentId.SceneId
                     },
                     SessionId = LdnHelper.StringToByteArray(id)
                 },
@@ -279,7 +307,7 @@ namespace LanPlayServer
                 {
                     SecurityMode      = 0,
                     SecurityParameter = new byte[0x10],
-                    NodeCountMax      = request.NetworkConfig.NodeCountMax,
+                    NodeCountMax      = networkConfig.NodeCountMax,
                     NodeCount         = 0,
                     Nodes             = new NodeInfo[8],
                     AdvertiseDataSize = (ushort)advertiseData.Length,
@@ -298,8 +326,8 @@ namespace LanPlayServer
                 MacAddress                = MacAddress,
                 NodeId                    = 0x00,
                 IsConnected               = 0x01,
-                UserName                  = request.UserConfig.UserName,
-                LocalCommunicationVersion = request.NetworkConfig.LocalCommunicationVersion,
+                UserName                  = userConfig.UserName,
+                LocalCommunicationVersion = networkConfig.LocalCommunicationVersion,
                 Reserved2                 = new byte[0x10]
             };
 
@@ -313,15 +341,21 @@ namespace LanPlayServer
                 };
             }
 
-            if (request.ExternalProxyPort != 0 && !IsProxyReachable(request.ExternalProxyPort))
+            if (ryuNetworkConfig.ExternalProxyPort != 0 && !IsProxyReachable(ryuNetworkConfig.ExternalProxyPort))
             {
-                request.ExternalProxyPort = 0;
+                ryuNetworkConfig.ExternalProxyPort = 0;
                 SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.PortUnreachable }));
             }
 
-            HostedGame game = _tcpServer.CreateGame(id, networkInfo);
+            HostedGame game = _tcpServer.CreateGame(id, networkInfo, dhcpConfig, userId);
 
-            game.SetOwner(this, request);
+            if (game == null)
+            {
+                SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.Unknown }));
+                return;
+            }
+
+            game.SetOwner(this, ryuNetworkConfig);
             game.Connect(this, myInfo);
         }
 
@@ -355,16 +389,8 @@ namespace LanPlayServer
             return false;
         }
 
-        private void HandleConnect(LdnHeader ldnPacket, ConnectRequest request)
+        private void ConnectImpl(string id, UserConfig userConfig, uint localCommunicationVersion)
         {
-            SecurityConfig securityConfig            = request.SecurityConfig;
-            UserConfig     userConfig                = request.UserConfig;
-            uint           localCommunicationVersion = request.LocalCommunicationVersion;
-            uint           optionUnknown             = request.OptionUnknown;
-            NetworkInfo    networkInfo               = request.NetworkInfo;
-
-            string id = LdnHelper.ByteArrayToString(networkInfo.NetworkId.SessionId);
-
             HostedGame game = _tcpServer.FindGame(id);
 
             if (game != null)
@@ -407,6 +433,35 @@ namespace LanPlayServer
                     SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.TooManyPlayers }));
                 }
             }
+            else
+            {
+                SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.ConnectNotFound }));
+            }
+        }
+
+        private void HandleConnect(LdnHeader ldnPacket, ConnectRequest request)
+        {
+            SecurityConfig securityConfig            = request.SecurityConfig;
+            UserConfig     userConfig                = request.UserConfig;
+            uint           localCommunicationVersion = request.LocalCommunicationVersion;
+            uint           optionUnknown             = request.OptionUnknown;
+            NetworkInfo    networkInfo               = request.NetworkInfo;
+
+            string id = LdnHelper.ByteArrayToString(networkInfo.NetworkId.SessionId);
+
+            ConnectImpl(id, userConfig, localCommunicationVersion);
+        }
+
+        private void HandleConnectPrivate(LdnHeader ldnPacket, ConnectPrivateRequest request)
+        {
+            SecurityConfig securityConfig = request.SecurityConfig;
+            UserConfig userConfig = request.UserConfig;
+            uint localCommunicationVersion = request.LocalCommunicationVersion;
+            uint optionUnknown = request.OptionUnknown;
+
+            string id = LdnHelper.ByteArrayToString(request.SecurityParameter.SessionId);
+
+            ConnectImpl(id, userConfig, localCommunicationVersion);
         }
     }
 }
