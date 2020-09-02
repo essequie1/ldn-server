@@ -17,6 +17,7 @@ namespace LanPlayServer.Network
         private int    _bufferEnd = 0;
 
         // Client Packets.
+        public event Action<LdnHeader, InitializeMessage> Initialize;
         public event Action<LdnHeader, PassphraseMessage> Passphrase;
         public event Action<LdnHeader, NetworkInfo> Connected;
         public event Action<LdnHeader, NetworkInfo> SyncNetwork;
@@ -147,6 +148,12 @@ namespace LanPlayServer.Network
             switch ((PacketId)header.Type)
             {
                 // Client Packets.
+                case PacketId.Initialize:
+                    {
+                        Initialize?.Invoke(header, ParseDefault<InitializeMessage>(data));
+
+                        break;
+                    }
                 case PacketId.Passphrase:
                     {
                         Passphrase?.Invoke(header, ParseDefault<PassphraseMessage>(data));

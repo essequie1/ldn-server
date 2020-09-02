@@ -32,6 +32,8 @@ namespace LanPlayServer
         private int _waitingPingID = -1;
         private byte _pingId = 0;
 
+        private bool _initialized = false;
+
         public LdnSession(LdnServer server) : base(server)
         {
             _tcpServer = server;
@@ -42,6 +44,7 @@ namespace LanPlayServer
 
             _protocol = new RyuLdnProtocol();
 
+            _protocol.Initialize               += HandleInitialize;
             _protocol.Passphrase               += HandlePassphrase;
             _protocol.CreateAccessPoint        += HandleCreateAccessPoint;
             _protocol.CreateAccessPointPrivate += HandleCreateAccessPointPrivate;
@@ -106,6 +109,20 @@ namespace LanPlayServer
                 // A response from this client. Still alive, reset the _waitingPingID. (getting the message will also reset the timer)
                 _waitingPingID = -1;
             }
+        }
+
+        private void HandleInitialize(LdnHeader header, InitializeMessage message)
+        {
+            if (_initialized)
+            {
+                return;
+            }
+
+            MacAddress = _tcpServer.MacAddresses.TryFind(LdnHelper.ByteArrayToString(message.Id), message.MacAddress, StringId);
+
+            SendAsync(_protocol.Encode(PacketId.Initialize, new InitializeMessage() { Id = LdnHelper.StringToByteArray(StringId), MacAddress = MacAddress }));
+
+            _initialized = true;
         }
 
         private void HandlePassphrase(LdnHeader header, PassphraseMessage message)
@@ -249,9 +266,11 @@ namespace LanPlayServer
 
         private void HandleCreateAccessPoint(LdnHeader ldnPacket, CreateAccessPointRequest request, byte[] advertiseData)
         {
-            if (CurrentGame != null)
+            if (CurrentGame != null || !_initialized)
             {
                 // Cannot create an access point while in a game.
+                SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.Unknown }));
+
                 return;
             }
 
@@ -265,9 +284,11 @@ namespace LanPlayServer
 
         private void HandleCreateAccessPointPrivate(LdnHeader ldnPacket, CreateAccessPointPrivateRequest request, byte[] advertiseData)
         {
-            if (CurrentGame != null)
+            if (CurrentGame != null || !_initialized)
             {
                 // Cannot create an access point while in a game.
+                SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.Unknown }));
+
                 return;
             }
 
@@ -293,10 +314,10 @@ namespace LanPlayServer
                 },
                 Common = new CommonNetworkInfo()
                 {
-                    Channel     = 0,
+                    Channel     = 1,
                     LinkLevel   = 3,
                     NetworkType = 2,
-                    MacAddress  = new byte[6],
+                    MacAddress  = MacAddress,
                     Ssid        = new Ssid()
                     {
                         Length = 32,
@@ -447,6 +468,13 @@ namespace LanPlayServer
             uint           optionUnknown             = request.OptionUnknown;
             NetworkInfo    networkInfo               = request.NetworkInfo;
 
+            if (!_initialized)
+            {
+                SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.ConnectFailure }));
+
+                return;
+            }
+
             string id = LdnHelper.ByteArrayToString(networkInfo.NetworkId.SessionId);
 
             ConnectImpl(id, userConfig, localCommunicationVersion);
@@ -458,6 +486,13 @@ namespace LanPlayServer
             UserConfig userConfig = request.UserConfig;
             uint localCommunicationVersion = request.LocalCommunicationVersion;
             uint optionUnknown = request.OptionUnknown;
+
+            if (!_initialized)
+            {
+                SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.ConnectFailure }));
+
+                return;
+            }
 
             string id = LdnHelper.ByteArrayToString(request.SecurityParameter.SessionId);
 

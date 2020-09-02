@@ -16,6 +16,7 @@ namespace LanPlayServer
         public static readonly int InactivityPingFrequency = 10000;
 
         public ConcurrentDictionary<string, HostedGame> HostedGames = new ConcurrentDictionary<string, HostedGame>();
+        public MacAddressMemory MacAddresses { get; } = new MacAddressMemory();
         public bool UseProxy => true;
 
         private CancellationTokenSource _cancel = new CancellationTokenSource();

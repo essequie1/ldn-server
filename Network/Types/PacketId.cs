@@ -2,7 +2,9 @@
 {
     enum PacketId
     {
+        Initialize,
         Passphrase,
+
         CreateAccessPoint,
         CreateAccessPointPrivate,
         ExternalProxy,
