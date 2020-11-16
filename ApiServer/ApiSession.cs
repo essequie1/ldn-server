@@ -26,7 +26,17 @@ namespace LanPlayServer
             HttpResponse httpResponse = new HttpResponse();
             httpResponse.Clear();
 
-            if (!RateLimiter.IsRateLimited(((IPEndPoint)Socket.RemoteEndPoint).Address))
+            IPAddress address;
+            try
+            {
+                address = ((IPEndPoint)Socket.RemoteEndPoint).Address;
+            }
+            catch (Exception)
+            {
+                return;
+            }
+
+            if (!RateLimiter.IsRateLimited(address))
             {
                 string bodyResponse = "";
                 string urlEndpoint  = Uri.UnescapeDataString(request.Url);
