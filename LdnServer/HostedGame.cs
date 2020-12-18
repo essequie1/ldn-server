@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading;
 
 namespace LanPlayServer
@@ -53,6 +54,21 @@ namespace LanPlayServer
                 _lock.EnterReadLock();
 
                 string result = _passphrase;
+
+                _lock.ExitReadLock();
+
+                return result;
+            }
+        }
+
+        private string _gameVersion;
+        public string GameVersion
+        {
+            get
+            {
+                _lock.EnterReadLock();
+
+                string result = _gameVersion;
 
                 _lock.ExitReadLock();
 
@@ -114,8 +130,10 @@ namespace LanPlayServer
         {
             _lock.EnterWriteLock();
 
-            Owner      = session;
+            Owner       = session;
             _passphrase = session.Passphrase;
+
+            _gameVersion = Encoding.UTF8.GetString(request.GameVersion, 0, request.GameVersion.Length).Trim('\0');
 
             if (request.ExternalProxyPort != 0)
             {

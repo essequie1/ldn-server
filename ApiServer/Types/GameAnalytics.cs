@@ -9,6 +9,7 @@ namespace LanPlayServer
         public int          MaxPlayerCount { get; set; }
         public string       GameName       { get; set; }
         public string       TitleId        { get; set; }
+        public string       TitleVersion   { get; set; }
         public string       Mode           { get; set; }
         public string       Status         { get; set; }
         public List<string> Players        { get; set; }
