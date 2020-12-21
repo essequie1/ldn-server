@@ -27,6 +27,8 @@ namespace LanPlayServer
 
         public static bool IsRateLimited(IPAddress ipAddress)
         {
+            return false;
+
             lock (lockObj)
             {
                 if (!_rateLimiterBucket.ContainsKey(ipAddress))
