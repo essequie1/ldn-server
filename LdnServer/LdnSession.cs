@@ -279,7 +279,7 @@ namespace LanPlayServer
             AddressList dhcpConfig = new AddressList();
             dhcpConfig.Addresses = new AddressEntry[8];
 
-            AccessPointConfigToNetworkInfo(id, request.NetworkConfig, request.UserConfig, request.RyuNetworkConfig, dhcpConfig, advertiseData);
+            AccessPointConfigToNetworkInfo(id, request.NetworkConfig, request.UserConfig, request.RyuNetworkConfig, request.SecurityConfig, dhcpConfig, advertiseData);
         }
 
         private void HandleCreateAccessPointPrivate(LdnHeader ldnPacket, CreateAccessPointPrivateRequest request, byte[] advertiseData)
@@ -294,10 +294,10 @@ namespace LanPlayServer
 
             string id = LdnHelper.ByteArrayToString(request.SecurityParameter.SessionId);
 
-            AccessPointConfigToNetworkInfo(id, request.NetworkConfig, request.UserConfig, request.RyuNetworkConfig, request.AddressList, advertiseData);
+            AccessPointConfigToNetworkInfo(id, request.NetworkConfig, request.UserConfig, request.RyuNetworkConfig, request.SecurityConfig, request.AddressList, advertiseData);
         }
 
-        private void AccessPointConfigToNetworkInfo(string id, NetworkConfig networkConfig, UserConfig userConfig, RyuNetworkConfig ryuNetworkConfig, AddressList dhcpConfig, byte[] advertiseData)
+        private void AccessPointConfigToNetworkInfo(string id, NetworkConfig networkConfig, UserConfig userConfig, RyuNetworkConfig ryuNetworkConfig, SecurityConfig securityConfig, AddressList dhcpConfig, byte[] advertiseData)
         {
             string userId = StringId;
 
@@ -314,7 +314,7 @@ namespace LanPlayServer
                 },
                 Common = new CommonNetworkInfo()
                 {
-                    Channel     = 1,
+                    Channel     = networkConfig.Channel,
                     LinkLevel   = 3,
                     NetworkType = 2,
                     MacAddress  = MacAddress,
@@ -326,7 +326,7 @@ namespace LanPlayServer
                 },
                 Ldn = new LdnNetworkInfo()
                 {
-                    SecurityMode      = 0,
+                    SecurityMode      = (ushort)securityConfig.SecurityMode,
                     SecurityParameter = new byte[0x10],
                     NodeCountMax      = networkConfig.NodeCountMax,
                     NodeCount         = 0,
