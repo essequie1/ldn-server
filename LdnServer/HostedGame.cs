@@ -320,9 +320,9 @@ namespace LanPlayServer
                 }
                 else
                 {
-                    _lock.ExitWriteLock();
-
                     Disconnect(_players[(int)reject.NodeId], false);
+
+                    _lock.ExitWriteLock();
                 }
             } 
             else
