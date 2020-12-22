@@ -314,13 +314,15 @@ namespace LanPlayServer
 
                 if (reject.NodeId >= _players.Count)
                 {
+                    _lock.ExitWriteLock();
+
                     sender.SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage() { Error = NetworkError.RejectFailed }));
                 }
                 else
                 {
-                    Disconnect(_players[(int)reject.NodeId], false);
-
                     _lock.ExitWriteLock();
+
+                    Disconnect(_players[(int)reject.NodeId], false);
                 }
             } 
             else
