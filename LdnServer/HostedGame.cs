@@ -209,9 +209,13 @@ namespace LanPlayServer
             node.Ipv4Address = session.IpAddress;
 
             // Add the client to the network info.
-            node.NodeId = _info.Ldn.NodeCount;
+            int nodeId = LocateEmptyNode();
+            _info.Ldn.NodeCount++;
 
-            _info.Ldn.Nodes[_info.Ldn.NodeCount++] = node;
+            node.NodeId = (byte)nodeId;
+            session.NodeId = nodeId;
+
+            _info.Ldn.Nodes[nodeId] = node;
 
             if (IsP2P)
             {
@@ -242,9 +246,11 @@ namespace LanPlayServer
                 if (ldn.Nodes[i].Ipv4Address == ip)
                 {
                     ldn.NodeCount--;
+                    ldn.Nodes[i].IsConnected = 0;
                     removed = true;
                 }
 
+                /*
                 if (removed)
                 {
                     // Move the next client into this space. Keep doing this repeatedly.
@@ -257,7 +263,23 @@ namespace LanPlayServer
                         ldn.Nodes[i] = new NodeInfo();
                     }
                 }
+                */
             }
+        }
+
+        private int LocateEmptyNode()
+        {
+            NodeInfo[] nodes = Info.Ldn.Nodes;
+
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                if (nodes[i].IsConnected == 0)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
         }
 
         // Proxy handlers
@@ -320,7 +342,7 @@ namespace LanPlayServer
                 }
                 else
                 {
-                    Disconnect(_players[(int)reject.NodeId], false);
+                    Disconnect(_players.FirstOrDefault(player => player.NodeId == reject.NodeId), false);
 
                     _lock.ExitWriteLock();
                 }
@@ -426,6 +448,11 @@ namespace LanPlayServer
 
         public void Disconnect(LdnSession session, bool expected)
         {
+            if (session == null)
+            {
+                return;
+            }
+
             _lock.EnterWriteLock();
 
             _players.Remove(session);

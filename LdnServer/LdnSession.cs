@@ -32,6 +32,11 @@ namespace LanPlayServer
         private int _waitingPingID = -1;
         private byte _pingId = 0;
 
+        /// <summary>
+        /// Node ID when in a game. This does not change while the user is still in that game.
+        /// </summary>
+        public int NodeId { get; set; }
+
         private bool _initialized = false;
 
         public LdnSession(LdnServer server) : base(server)
