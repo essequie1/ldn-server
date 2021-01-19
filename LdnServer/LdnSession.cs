@@ -257,7 +257,7 @@ namespace LanPlayServer
 
         private void HandleScan(LdnHeader ldnPacket, ScanFilter filter)
         {
-            int games = _tcpServer.Scan(ref _scanBuffer, filter, Passphrase);
+            int games = _tcpServer.Scan(ref _scanBuffer, filter, Passphrase, CurrentGame);
 
             for (int i = 0; i < games; i++)
             {

@@ -70,7 +70,7 @@ namespace LanPlayServer
             return HostedGames.ToArray();
         }
 
-        public int Scan(ref NetworkInfo[] info, ScanFilter filter, string passphrase)
+        public int Scan(ref NetworkInfo[] info, ScanFilter filter, string passphrase, HostedGame exclude)
         {
             KeyValuePair<string, HostedGame>[] all = HostedGames.ToArray();
 
@@ -80,7 +80,7 @@ namespace LanPlayServer
             {
                 HostedGame game = all[i].Value;
 
-                if (game.Passphrase != passphrase)
+                if (game.Passphrase != passphrase || game == exclude)
                 {
                     continue;
                 }
