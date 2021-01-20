@@ -151,6 +151,7 @@ namespace LanPlayServer
                     NetworkInfo info        = game.Info;
                     string      gameVersion = game.GameVersion;
                     ulong       titleId     = info.NetworkId.IntentId.LocalCommunicationId;
+                    int         sceneId     = info.NetworkId.IntentId.SceneId;
                     string      gameName    = GameList.GetGameById(titleId)?.Name ?? "Unknown";
                     string      titleString = titleId.ToString("x16");
 
@@ -181,6 +182,7 @@ namespace LanPlayServer
                     gameAnalytics.MaxPlayerCount = info.Ldn.NodeCountMax;
                     gameAnalytics.GameName       = gameName;
                     gameAnalytics.TitleId        = titleString;
+                    gameAnalytics.SceneId        = sceneId;
                     gameAnalytics.TitleVersion   = gameVersion;
 
                     totalPlayerCount += info.Ldn.NodeCount;

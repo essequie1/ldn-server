@@ -12,6 +12,7 @@ namespace LanPlayServer
         public string       TitleVersion   { get; set; }
         public string       Mode           { get; set; }
         public string       Status         { get; set; }
+        public int          SceneId        { get; set; }
         public List<string> Players        { get; set; }
     }
 }
