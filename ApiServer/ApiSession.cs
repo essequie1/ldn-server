@@ -155,6 +155,11 @@ namespace LanPlayServer
                     string      gameName    = GameList.GetGameById(titleId)?.Name ?? "Unknown";
                     string      titleString = titleId.ToString("x16");
 
+                    if (info.Ldn.NodeCount == 0)
+                    {
+                        continue;
+                    }
+
                     gameAnalytics.Mode = game.IsP2P ? "P2P" : "Master Server Proxy";
                     if (!game.IsP2P)
                     {

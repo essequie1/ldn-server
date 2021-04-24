@@ -136,6 +136,11 @@ namespace LanPlayServer
                     }
                 }
 
+                if (game.Players == 0)
+                {
+                    continue;
+                }
+
                 // Mac address filter not implemented, since they are currently random.
 
                 if (results >= info.Length)
