@@ -387,6 +387,7 @@ namespace LanPlayServer
                 return;
             }
 
+            Console.WriteLine($"Enter lock");
             lock (_connectionLock)
             {
                 if (_disconnected)
@@ -398,6 +399,7 @@ namespace LanPlayServer
                 game?.SetOwner(this, ryuNetworkConfig);
                 game?.Connect(this, myInfo);
             }
+            Console.WriteLine($"Exit lock");
 
             if (game == null)
             {
