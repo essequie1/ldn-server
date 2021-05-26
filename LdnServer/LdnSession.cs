@@ -38,6 +38,8 @@ namespace LanPlayServer
         public int NodeId { get; set; }
 
         private bool _initialized = false;
+        private bool _disconnected = false;
+        private object _connectionLock = new object();
 
         public LdnSession(LdnServer server) : base(server)
         {
@@ -193,7 +195,11 @@ namespace LanPlayServer
 
         protected override void OnDisconnected()
         {
-            DisconnectFromGame();
+            lock (_connectionLock)
+            {
+                _disconnected = true;
+                DisconnectFromGame();
+            }
 
             Console.WriteLine($"LDN TCP session with Id {Id} disconnected!");
         }
@@ -381,8 +387,21 @@ namespace LanPlayServer
                 return;
             }
 
-            game.SetOwner(this, ryuNetworkConfig);
-            game.Connect(this, myInfo);
+            lock (_connectionLock)
+            {
+                if (_disconnected)
+                {
+                    game = null;
+                }
+
+                game?.SetOwner(this, ryuNetworkConfig);
+                game?.Connect(this, myInfo);
+            }
+
+            if (game == null)
+            {
+                _tcpServer.CloseGame(id);
+            }
         }
 
         private bool IsProxyReachable(ushort port)
