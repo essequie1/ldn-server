@@ -513,6 +513,8 @@ namespace LanPlayServer
         {
             _lock.EnterWriteLock();
 
+            Console.WriteLine($"CLOSING: {Id}");
+
             _closed = true;
 
             BroadcastInLock(_protocol.Encode(PacketId.Disconnect, new DisconnectMessage()));

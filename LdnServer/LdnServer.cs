@@ -39,6 +39,7 @@ namespace LanPlayServer
                 {
                     oldGame.Close();
 
+                    Console.WriteLine($"NEW GAME: {id}");
                     return game;
                 }
                 else
@@ -46,6 +47,7 @@ namespace LanPlayServer
                     game.Close();
                     idTaken = true;
 
+                    Console.WriteLine($"id Taken: {id}");
                     return oldGame;
                 }
             });
