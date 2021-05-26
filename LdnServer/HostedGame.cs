@@ -130,32 +130,40 @@ namespace LanPlayServer
         {
             _lock.EnterWriteLock();
 
-            Owner       = session;
-            _passphrase = session.Passphrase;
-
-            _gameVersion = Encoding.UTF8.GetString(request.GameVersion, 0, request.GameVersion.Length).Trim('\0');
-
-            if (request.ExternalProxyPort != 0)
+            try
             {
-                IsP2P = true;
+                Owner = session;
+                _passphrase = session.Passphrase;
 
-                IPAddress address = (session.Socket.RemoteEndPoint as IPEndPoint).Address;
+                _gameVersion = Encoding.UTF8.GetString(request.GameVersion, 0, request.GameVersion.Length).Trim('\0');
 
-                _externalConfig = new ExternalProxyConfig()
+                if (request.ExternalProxyPort != 0)
                 {
-                    ProxyIp       = AddressTo16Byte(address),
-                    AddressFamily = address.AddressFamily,
-                    ProxyPort     = request.ExternalProxyPort,
-                    Token         = new byte[10]
-                };
+                    IsP2P = true;
 
-                _privateConfig = new ExternalProxyConfig()
-                {
-                    ProxyIp       = request.PrivateIp,
-                    AddressFamily = request.AddressFamily,
-                    ProxyPort     = request.InternalProxyPort,
-                    Token         = new byte[10]
-                };
+                    IPAddress address = (session.Socket.RemoteEndPoint as IPEndPoint).Address;
+
+                    _externalConfig = new ExternalProxyConfig()
+                    {
+                        ProxyIp = AddressTo16Byte(address),
+                        AddressFamily = address.AddressFamily,
+                        ProxyPort = request.ExternalProxyPort,
+                        Token = new byte[10]
+                    };
+
+                    _privateConfig = new ExternalProxyConfig()
+                    {
+                        ProxyIp = request.PrivateIp,
+                        AddressFamily = request.AddressFamily,
+                        ProxyPort = request.InternalProxyPort,
+                        Token = new byte[10]
+                    };
+                }
+            }
+            catch
+            {
+                _lock.ExitWriteLock();
+                throw;
             }
 
             _lock.ExitWriteLock();
