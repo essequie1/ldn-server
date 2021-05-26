@@ -371,14 +371,12 @@ namespace LanPlayServer
             {
                 ryuNetworkConfig.ExternalProxyPort = 0;
                 SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.PortUnreachable }));
-                Console.WriteLine("port was unreachable");
             }
 
             if (networkInfo.NetworkId.IntentId.LocalCommunicationId == 0x0100abf008968000ul &&
                 Encoding.UTF8.GetString(ryuNetworkConfig.GameVersion, 0, ryuNetworkConfig.GameVersion.Length).Trim('\0') == "1.3.2")
             {
                 SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.Unknown }));
-                return;
             }
 
             HostedGame game = _tcpServer.CreateGame(id, networkInfo, dhcpConfig, userId);
