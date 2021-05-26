@@ -391,6 +391,7 @@ namespace LanPlayServer
             {
                 if (_disconnected)
                 {
+                    Console.WriteLine($"Emergency disconnect: {id}");
                     game = null;
                 }
 
