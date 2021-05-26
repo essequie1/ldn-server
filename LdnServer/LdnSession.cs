@@ -403,6 +403,7 @@ namespace LanPlayServer
 
             if (game == null)
             {
+                Console.WriteLine("Null close: {id}");
                 _tcpServer.CloseGame(id);
             }
         }
