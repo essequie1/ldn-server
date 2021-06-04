@@ -188,18 +188,27 @@ namespace LanPlayServer
 
         protected override void OnConnected()
         {
-            IpAddress = GetSessionIp();
+            try
+            {
+                IpAddress = GetSessionIp();
+            }
+            catch
+            {
+                // Already disconnected?
+            }
 
             Console.WriteLine($"LDN TCP session with Id {Id} connected!"); ;
         }
 
         protected override void OnDisconnected()
         {
+            Console.WriteLine($"Enter DC lock {Id}");
             lock (_connectionLock)
             {
                 _disconnected = true;
                 DisconnectFromGame();
             }
+            Console.WriteLine($"Exit DC lock {Id}");
 
             Console.WriteLine($"LDN TCP session with Id {Id} disconnected!");
         }
@@ -414,7 +423,17 @@ namespace LanPlayServer
             // We don't need to send anything, just establish a TCP connection.
             // If that is not possible, then their external proxy isn't reachable from the internet.
 
-            IPEndPoint ep = new IPEndPoint((Socket.RemoteEndPoint as IPEndPoint).Address, port);
+            IPEndPoint searchEndpoint;
+            try
+            {
+                searchEndpoint = Socket.RemoteEndPoint as IPEndPoint;
+            }
+            catch
+            {
+                return false;
+            }
+
+            IPEndPoint ep = new IPEndPoint(searchEndpoint.Address, port);
 
             NetCoreServer.TcpClient client = new NetCoreServer.TcpClient(ep);
             client.ConnectAsync();
