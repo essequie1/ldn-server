@@ -217,6 +217,11 @@ namespace LanPlayServer
         {
             try
             {
+                if (CurrentGame == null)
+                {
+                    Console.WriteLine($"Got Any Message At All from {IpAddress.ToString("x8")}");
+                }
+
                 _protocol.Read(buffer, (int)offset, (int)size);
 
                 _lastMessageTicks = Stopwatch.GetTimestamp();
@@ -272,11 +277,6 @@ namespace LanPlayServer
 
         private void HandleScan(LdnHeader ldnPacket, ScanFilter filter)
         {
-            if (CurrentGame == null)
-            {
-                Console.WriteLine("Replying to Scan");
-            }
-
             int games = _tcpServer.Scan(ref _scanBuffer, filter, Passphrase, CurrentGame);
 
             for (int i = 0; i < games; i++)
@@ -287,11 +287,6 @@ namespace LanPlayServer
             }
 
             SendAsync(_protocol.Encode(PacketId.ScanReplyEnd));
-
-            if (CurrentGame == null)
-            {
-                Console.WriteLine("Replied to Scan");
-            }
         }
 
         private void HandleCreateAccessPoint(LdnHeader ldnPacket, CreateAccessPointRequest request, byte[] advertiseData)
