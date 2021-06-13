@@ -412,8 +412,9 @@ namespace LanPlayServer
 
             if (game == null)
             {
-                Console.WriteLine("Null close: {id}");
+                Console.WriteLine($"Null close: {id}");
                 _tcpServer.CloseGame(id);
+                Console.WriteLine($"Null close complete");
             }
         }
 
