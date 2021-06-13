@@ -399,6 +399,7 @@ namespace LanPlayServer
                 Encoding.UTF8.GetString(ryuNetworkConfig.GameVersion, 0, ryuNetworkConfig.GameVersion.Length).Trim('\0') == "1.3.2")
             {
                 SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.Unknown }));
+                return;
             }
 
             HostedGame game = _tcpServer.CreateGame(id, networkInfo, dhcpConfig, userId);
