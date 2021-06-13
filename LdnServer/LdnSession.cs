@@ -217,10 +217,12 @@ namespace LanPlayServer
         {
             try
             {
+                /*
                 if (CurrentGame == null)
                 {
                     Console.WriteLine($"Got Any Message At All from {IpAddress.ToString("x8")}");
                 }
+                */
 
                 _protocol.Read(buffer, (int)offset, (int)size);
 
