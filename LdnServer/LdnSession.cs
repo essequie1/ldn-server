@@ -40,7 +40,8 @@ namespace LanPlayServer
         private bool _initialized = false;
         private bool _disconnected = false;
         private object _connectionLock = new object();
-        private ManualResetEvent _connected = new ManualResetEvent(false);
+
+        private bool _connected = false;
 
         public LdnSession(LdnServer server) : base(server)
         {
@@ -201,19 +202,22 @@ namespace LanPlayServer
 
         protected override void OnConnected()
         {
-            try
+            if (!_connected)
             {
-                IpAddress = GetSessionIp();
-            }
-            catch
-            {
-                Console.WriteLine($"IP unavailable!");
-                // Already disconnected?
-            }
+                try
+                {
+                    IpAddress = GetSessionIp();
+                }
+                catch
+                {
+                    Console.WriteLine($"IP unavailable!");
+                    // Already disconnected?
+                }
 
-            Console.WriteLine($"LDN TCP session with Id {Id} connected!");
+                Console.WriteLine($"LDN TCP session with Id {Id} connected!");
 
-            _connected.Set();
+                _connected = true;
+            }
         }
 
         protected override void OnDisconnected()
@@ -233,10 +237,7 @@ namespace LanPlayServer
         {
             try
             {
-                if (!_connected.WaitOne(3000))
-                {
-                    throw new InvalidOperationException("Did not fully connect to recv message");
-                }
+                OnConnected();
 
                 _protocol.Read(buffer, (int)offset, (int)size);
 
