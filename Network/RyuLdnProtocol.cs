@@ -1,11 +1,13 @@
 ﻿using LanPlayServer.Network.Types;
 using Ryujinx.HLE.HOS.Services.Ldn.Types;
 using System;
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace LanPlayServer.Network
 {
-    class RyuLdnProtocol
+    class RyuLdnProtocol : IDisposable
     {
         private const byte CurrentProtocolVersion = 1;
         private const int  Magic                  = ('R' << 0) | ('L' << 8) | ('D' << 16) | ('N' << 24);
@@ -54,7 +56,32 @@ namespace LanPlayServer.Network
 
         public event Action<LdnHeader> Any;
 
-        public RyuLdnProtocol() { }
+        public ConcurrentQueue<(LdnHeader, byte[])> _messages = new ConcurrentQueue<(LdnHeader, byte[])>();
+        public Thread _consumerThread;
+        public AutoResetEvent _messageReady = new AutoResetEvent(false);
+        private bool _active = true;
+
+        public RyuLdnProtocol(bool withConsumerThread = true)
+        {
+            if (withConsumerThread)
+            {
+                _consumerThread = new Thread(Run);
+                _consumerThread.Start();
+            }
+        }
+
+        public void Run()
+        {
+            while (_active)
+            {
+                _messageReady.WaitOne();
+
+                while (_messages.TryDequeue(out var result))
+                {
+                    DecodeAndHandle(result.Item1, result.Item2);
+                }
+            }
+        }
 
         public void Reset()
         {
@@ -117,7 +144,7 @@ namespace LanPlayServer.Network
 
                         Array.Copy(_buffer, _headerSize, ldnData, 0, ldnData.Length);
 
-                        DecodeAndHandle(ldnHeader, ldnData);
+                        DecodeAndHandleDeferred(ldnHeader, ldnData);
 
                         Reset();
                     }
@@ -143,6 +170,12 @@ namespace LanPlayServer.Network
             }
 
             return (LdnHelper.FromBytes<T>(data), remainder);
+        }
+
+        private void DecodeAndHandleDeferred(LdnHeader header, byte[] data)
+        {
+            _messages.Enqueue((header, data));
+            _messageReady.Set();
         }
 
         private void DecodeAndHandle(LdnHeader header, byte[] data)
@@ -380,6 +413,14 @@ namespace LanPlayServer.Network
             Array.Copy(data, 0, result, Marshal.SizeOf<LdnHeader>() + packetData.Length, data.Length);
 
             return result;
+        }
+
+        public void Dispose()
+        {
+            _active = false;
+            _messageReady.Set();
+
+            _consumerThread?.Join();
         }
     }
 }

@@ -102,7 +102,7 @@ namespace LanPlayServer
             _players = new List<LdnSession>();
             _dhcp    = new VirtualDhcp(NetworkBaseAddress, NetworkSubnetMask, dhcpConfig);
 
-            _protocol = new RyuLdnProtocol();
+            _protocol = new RyuLdnProtocol(false);
 
             UpdateNetworkInfo(info);
         }
@@ -381,7 +381,6 @@ namespace LanPlayServer
         {
             if (sender == Owner)
             {
-                Console.WriteLine($"Setting advertise data: {data.Length}");
                 _lock.EnterWriteLock();
 
                 Array.Resize(ref data, 0x180);

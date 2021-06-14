@@ -232,6 +232,8 @@ namespace LanPlayServer
             Console.WriteLine($"Exit DC lock {Id}");
 
             Console.WriteLine($"LDN TCP session with Id {Id} disconnected! ({PrintIp()})");
+
+            _protocol.Dispose();
         }
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
