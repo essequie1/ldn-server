@@ -52,6 +52,8 @@ namespace LanPlayServer.Network
         public event Action<LdnHeader, NetworkErrorMessage> NetworkError;
         public event Action<LdnHeader, PingMessage> Ping;
 
+        public event Action<LdnHeader> Any;
+
         public RyuLdnProtocol() { }
 
         public void Reset()
@@ -145,6 +147,8 @@ namespace LanPlayServer.Network
 
         private void DecodeAndHandle(LdnHeader header, byte[] data)
         {
+            Any?.Invoke(header);
+
             switch ((PacketId)header.Type)
             {
                 // Client Packets.

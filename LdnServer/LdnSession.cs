@@ -70,6 +70,18 @@ namespace LanPlayServer
 
             _protocol.ExternalProxyState += HandleExternalProxyState;
             _protocol.Ping               += HandlePing;
+
+            _protocol.Any += HandleAny;
+        }
+
+        private void HandleAny(LdnHeader obj)
+        {
+            Console.WriteLine($"  ({PrintIp()}) -> {(PacketId)obj.Type}");
+        }
+
+        private string PrintIp()
+        {
+            return $"{IpAddress >> 24}.{(IpAddress >> 16) & 0xFF}.{(IpAddress >> 8) & 0xFF}.{IpAddress & 0xFF}";
         }
 
         public void Ping()
@@ -395,11 +407,13 @@ namespace LanPlayServer
                 SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.PortUnreachable }));
             }
 
+            /*
             if (networkInfo.NetworkId.IntentId.LocalCommunicationId == 0x0100abf008968000ul)
             {
                 SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.Unknown }));
                 return;
             }
+            */
 
             HostedGame game = _tcpServer.CreateGame(id, networkInfo, dhcpConfig, userId);
 
