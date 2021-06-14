@@ -74,7 +74,7 @@ namespace LanPlayServer
             _protocol.ExternalProxyState += HandleExternalProxyState;
             _protocol.Ping               += HandlePing;
 
-            _protocol.Any += HandleAny;
+            //_protocol.Any += HandleAny;
         }
 
         private void HandleAny(LdnHeader obj)
@@ -223,13 +223,11 @@ namespace LanPlayServer
 
         protected override void OnDisconnected()
         {
-            Console.WriteLine($"Enter DC lock {Id}");
             lock (_connectionLock)
             {
                 _disconnected = true;
                 DisconnectFromGame();
             }
-            Console.WriteLine($"Exit DC lock {Id}");
 
             Console.WriteLine($"LDN TCP session with Id {Id} disconnected! ({PrintIp()})");
 
@@ -429,7 +427,6 @@ namespace LanPlayServer
                 return;
             }
 
-            Console.WriteLine($"Enter lock");
             lock (_connectionLock)
             {
                 if (_disconnected)
@@ -441,13 +438,11 @@ namespace LanPlayServer
                 game?.SetOwner(this, ryuNetworkConfig);
                 game?.Connect(this, myInfo);
             }
-            Console.WriteLine($"Exit lock");
 
             if (game == null)
             {
                 Console.WriteLine($"Null close: {id}");
                 _tcpServer.CloseGame(id);
-                Console.WriteLine($"Null close complete");
             }
         }
 
