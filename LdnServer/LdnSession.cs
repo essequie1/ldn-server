@@ -20,6 +20,7 @@ namespace LanPlayServer
         public HostedGame CurrentGame { get; set; }
         public byte[]     MacAddress  { get; private set; }
         public uint       IpAddress   { get; private set; }
+        public uint       RealIpAddress { get; private set; }
         public string     Passphrase  { get; private set; } = "";
 
         public string     StringId => Id.ToString().Replace("-", "");
@@ -83,7 +84,7 @@ namespace LanPlayServer
 
         private string PrintIp()
         {
-            return $"{IpAddress >> 24}.{(IpAddress >> 16) & 0xFF}.{(IpAddress >> 8) & 0xFF}.{IpAddress & 0xFF}";
+            return $"{RealIpAddress >> 24}.{(RealIpAddress >> 16) & 0xFF}.{(RealIpAddress >> 8) & 0xFF}.{RealIpAddress & 0xFF}";
         }
 
         public void Ping()
@@ -206,7 +207,7 @@ namespace LanPlayServer
             {
                 try
                 {
-                    IpAddress = GetSessionIp();
+                    RealIpAddress = GetSessionIp();
                 }
                 catch
                 {
