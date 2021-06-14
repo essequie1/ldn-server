@@ -78,7 +78,14 @@ namespace LanPlayServer.Network
 
                 while (_messages.TryDequeue(out var result))
                 {
-                    DecodeAndHandle(result.Item1, result.Item2);
+                    try
+                    {
+                        DecodeAndHandle(result.Item1, result.Item2);
+                    } 
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"Uncaught message exception: {e.ToString()}");
+                    }
                 }
             }
         }
