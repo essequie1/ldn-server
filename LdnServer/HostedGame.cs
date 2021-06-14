@@ -381,6 +381,7 @@ namespace LanPlayServer
         {
             if (sender == Owner)
             {
+                Console.WriteLine($"Setting advertise data: {data.Length}");
                 _lock.EnterWriteLock();
 
                 Array.Resize(ref data, 0x180);

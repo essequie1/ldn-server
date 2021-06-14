@@ -215,7 +215,7 @@ namespace LanPlayServer
                     // Already disconnected?
                 }
 
-                Console.WriteLine($"LDN TCP session with Id {Id} connected!");
+                Console.WriteLine($"LDN TCP session with Id {Id} connected! ({PrintIp()})");
 
                 _connected = true;
             }
@@ -231,7 +231,7 @@ namespace LanPlayServer
             }
             Console.WriteLine($"Exit DC lock {Id}");
 
-            Console.WriteLine($"LDN TCP session with Id {Id} disconnected!");
+            Console.WriteLine($"LDN TCP session with Id {Id} disconnected! ({PrintIp()})");
         }
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
