@@ -40,6 +40,7 @@ namespace LanPlayServer
         private bool _initialized = false;
         private bool _disconnected = false;
         private object _connectionLock = new object();
+        private ManualResetEvent _connected = new ManualResetEvent(false);
 
         public LdnSession(LdnServer server) : base(server)
         {
@@ -206,10 +207,13 @@ namespace LanPlayServer
             }
             catch
             {
+                Console.WriteLine($"IP unavailable!");
                 // Already disconnected?
             }
 
-            Console.WriteLine($"LDN TCP session with Id {Id} connected!"); ;
+            Console.WriteLine($"LDN TCP session with Id {Id} connected!");
+
+            _connected.Set();
         }
 
         protected override void OnDisconnected()
@@ -229,12 +233,10 @@ namespace LanPlayServer
         {
             try
             {
-                /*
-                if (CurrentGame == null)
+                if (!_connected.WaitOne(3000))
                 {
-                    Console.WriteLine($"Got Any Message At All from {IpAddress.ToString("x8")}");
+                    throw new InvalidOperationException("Did not fully connect to recv message");
                 }
-                */
 
                 _protocol.Read(buffer, (int)offset, (int)size);
 
