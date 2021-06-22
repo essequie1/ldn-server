@@ -10,13 +10,27 @@ using System.Threading;
 
 namespace LanPlayServer
 {
+    enum GameLockReason
+    {
+        None,
+        UpdateNetworkInfo,
+        SetOwner,
+        Connect,
+        Reject,
+        SetAcceptPolicy,
+        SetAdvertiseData,
+        HandleExternalProxyState,
+        Disconnect,
+        Close
+    }
+
     class HostedGame
     {
         private const uint NetworkBaseAddress = 0x0a720000; // 10.114.0.0 (our "virtual network")
         private const uint NetworkSubnetMask  = 0xffff0000; // 255.255.0.0
 
         private ReaderWriterLockSlim _lock;
-
+        private GameLockReason _lockReason;
         private List<LdnSession> _players;
         private VirtualDhcp      _dhcp;
 
@@ -107,13 +121,37 @@ namespace LanPlayServer
             UpdateNetworkInfo(info);
         }
 
-        public void UpdateNetworkInfo(NetworkInfo info)
+        public bool TestReadLock()
+        {
+            if (!_lock.TryEnterReadLock(2000))
+            {
+                Console.WriteLine($"Lock broken: {_lockReason} on {_info.NetworkId.IntentId.LocalCommunicationId:x16} with {_players.Count} players.");
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private void EnterLock(GameLockReason reason)
         {
             _lock.EnterWriteLock();
+            _lockReason = reason;
+        }
+
+        private void ExitLock()
+        {
+            _lockReason = GameLockReason.None;
+            _lock.ExitWriteLock();
+        }
+
+        public void UpdateNetworkInfo(NetworkInfo info)
+        {
+            EnterLock(GameLockReason.UpdateNetworkInfo);
 
             _info = info;
 
-            _lock.ExitWriteLock();
+            ExitLock();
         }
 
         private byte[] AddressTo16Byte(IPAddress address)
@@ -128,7 +166,7 @@ namespace LanPlayServer
 
         public void SetOwner(LdnSession session, RyuNetworkConfig request)
         {
-            _lock.EnterWriteLock();
+            EnterLock(GameLockReason.SetOwner);
 
             try
             {
@@ -162,11 +200,11 @@ namespace LanPlayServer
             }
             catch
             {
-                _lock.ExitWriteLock();
+                ExitLock();
                 throw;
             }
 
-            _lock.ExitWriteLock();
+            ExitLock();
         }
 
         private void InitExternalProxy(LdnSession session)
@@ -199,11 +237,11 @@ namespace LanPlayServer
 
         public bool Connect(LdnSession session, NodeInfo node)
         {
-            _lock.EnterWriteLock();
+            EnterLock(GameLockReason.Connect);
 
             if (_closed || _info.Ldn.NodeCount == _info.Ldn.NodeCountMax)
             {
-                _lock.ExitWriteLock();
+                ExitLock();
 
                 return false;
             }
@@ -238,7 +276,7 @@ namespace LanPlayServer
 
             session.SendAsync(_protocol.Encode(PacketId.Connected, _info));
 
-            _lock.ExitWriteLock();
+            ExitLock();
 
             return true;
         }
@@ -340,11 +378,11 @@ namespace LanPlayServer
         {
             if (sender == Owner)
             {
-                _lock.EnterWriteLock();
+                EnterLock(GameLockReason.Reject);
 
                 if (reject.NodeId >= _players.Count)
                 {
-                    _lock.ExitWriteLock();
+                    ExitLock();
 
                     sender.SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage() { Error = NetworkError.RejectFailed }));
                 }
@@ -352,7 +390,7 @@ namespace LanPlayServer
                 {
                     Disconnect(_players.FirstOrDefault(player => player.NodeId == reject.NodeId), false);
 
-                    _lock.ExitWriteLock();
+                    ExitLock();
                 }
             } 
             else
@@ -367,13 +405,13 @@ namespace LanPlayServer
         {
             if (sender == Owner)
             {
-                _lock.EnterWriteLock();
+                EnterLock(GameLockReason.SetAcceptPolicy);
 
                 _info.Ldn.StationAcceptPolicy = policy.StationAcceptPolicy;
 
                 BroadcastNetworkInfoInLock();
 
-                _lock.ExitWriteLock();
+                ExitLock();
             }
         }
 
@@ -381,7 +419,7 @@ namespace LanPlayServer
         {
             if (sender == Owner)
             {
-                _lock.EnterWriteLock();
+                EnterLock(GameLockReason.SetAdvertiseData);
 
                 Array.Resize(ref data, 0x180);
 
@@ -389,18 +427,18 @@ namespace LanPlayServer
 
                 BroadcastNetworkInfoInLock();
 
-                _lock.ExitWriteLock();
+                ExitLock();
             }
         }
 
         public void HandleExternalProxyState(LdnSession sender, LdnHeader header, ExternalProxyConnectionState state)
         {
-            _lock.EnterWriteLock();
+            EnterLock(GameLockReason.HandleExternalProxyState);
 
             if (sender != Owner)
             {
                 // Only the owner can update external proxy state.
-                _lock.ExitWriteLock();
+                ExitLock();
 
                 return;
             }
@@ -419,7 +457,7 @@ namespace LanPlayServer
                 }
             }
 
-            _lock.ExitWriteLock();
+            ExitLock();
         }
 
         public void HandleProxyDisconnect(LdnSession sender, LdnHeader header, ProxyDisconnectMessage message)
@@ -461,7 +499,7 @@ namespace LanPlayServer
                 return;
             }
 
-            _lock.EnterWriteLock();
+            EnterLock(GameLockReason.Disconnect);
 
             _players.Remove(session);
 
@@ -483,7 +521,7 @@ namespace LanPlayServer
 
             BroadcastNetworkInfoInLock();
 
-            _lock.ExitWriteLock();
+            ExitLock();
         }
 
         // NOTE: Unused.
@@ -511,7 +549,7 @@ namespace LanPlayServer
 
         public void Close()
         {
-            _lock.EnterWriteLock();
+            EnterLock(GameLockReason.Close);
 
             Console.WriteLine($"CLOSING: {Id}");
 
@@ -519,7 +557,7 @@ namespace LanPlayServer
 
             BroadcastInLock(_protocol.Encode(PacketId.Disconnect, new DisconnectMessage()));
 
-            _lock.ExitWriteLock();
+            ExitLock();
         }
     }
 }

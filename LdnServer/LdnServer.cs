@@ -82,6 +82,11 @@ namespace LanPlayServer
             {
                 HostedGame game = all[i].Value;
 
+                if (game.TestReadLock())
+                {
+                    continue;
+                }
+
                 if (game.Passphrase != passphrase || game == exclude)
                 {
                     continue;

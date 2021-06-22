@@ -118,6 +118,11 @@ namespace LanPlayServer
 
             foreach (KeyValuePair<string, HostedGame> game in games)
             {
+                if (game.Value.TestReadLock())
+                {
+                    continue;
+                }
+
                 string passphrase = game.Value.Passphrase ?? "";
 
                 if (!gamesByPassphrase.TryGetValue(passphrase, out List<HostedGame> target))
