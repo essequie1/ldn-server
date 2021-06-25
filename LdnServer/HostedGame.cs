@@ -503,25 +503,32 @@ namespace LanPlayServer
 
             EnterLock(GameLockReason.Disconnect);
 
-            _players.Remove(session);
-
-            session.CurrentGame = null;
-
-            if (IsP2P && !expected)
+            try
             {
-                Owner.SendAsync(_protocol.Encode(PacketId.ExternalProxyState, new ExternalProxyConnectionState
+                _players.Remove(session);
+
+                session.CurrentGame = null;
+
+                if (IsP2P && !expected)
                 {
-                    IpAddress = session.IpAddress,
-                    Connected = false
-                }));
+                    Owner?.SendAsync(_protocol.Encode(PacketId.ExternalProxyState, new ExternalProxyConnectionState
+                    {
+                        IpAddress = session.IpAddress,
+                        Connected = false
+                    }));
+                }
+
+                _dhcp.ReturnIpV4(session.IpAddress);
+
+                // Remove the client from the network info.
+                RemoveFromInfo(session.IpAddress);
+
+                BroadcastNetworkInfoInLock();
             }
-
-            _dhcp.ReturnIpV4(session.IpAddress);
-
-            // Remove the client from the network info.
-            RemoveFromInfo(session.IpAddress);
-
-            BroadcastNetworkInfoInLock();
+            catch (Exception e)
+            {
+                Console.WriteLine("SUPER FATAL ERROR: " + e.ToString());
+            }
 
             ExitLock();
         }
