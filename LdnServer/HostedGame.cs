@@ -130,6 +130,8 @@ namespace LanPlayServer
                 return true;
             }
 
+            _lock.ExitReadLock();
+
             return false;
         }
 
