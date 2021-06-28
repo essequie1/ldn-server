@@ -16,11 +16,18 @@ namespace LanPlayServer
         UpdateNetworkInfo,
         SetOwner,
         Connect,
+        ConnectNode,
+        ConnectBroadcast,
+        ConnectProxy,
+        ConnectFinal,
         Reject,
         SetAcceptPolicy,
         SetAdvertiseData,
         HandleExternalProxyState,
         Disconnect,
+        DisconnectDHCP,
+        DisconnectInfoRemove,
+        DisconnectBroadcast,
         Close
     }
 
@@ -256,6 +263,8 @@ namespace LanPlayServer
 
             node.Ipv4Address = session.IpAddress;
 
+            _lockReason = GameLockReason.ConnectNode;
+
             // Add the client to the network info.
             int nodeId = LocateEmptyNode();
             _info.Ldn.NodeCount++;
@@ -265,17 +274,20 @@ namespace LanPlayServer
 
             _info.Ldn.Nodes[nodeId] = node;
 
+            _lockReason = GameLockReason.ConnectProxy;
             if (IsP2P)
             {
                 InitExternalProxy(session);
             }
 
+            _lockReason = GameLockReason.ConnectBroadcast;
             BroadcastNetworkInfoInLock();
 
             session.CurrentGame = this;
 
             _players.Add(session);
 
+            _lockReason = GameLockReason.ConnectFinal;
             session.SendAsync(_protocol.Encode(PacketId.Connected, _info));
 
             ExitLock();
@@ -518,10 +530,16 @@ namespace LanPlayServer
                     }));
                 }
 
+                _lockReason = GameLockReason.DisconnectDHCP;
+
                 _dhcp.ReturnIpV4(session.IpAddress);
+
+                _lockReason = GameLockReason.DisconnectInfoRemove;
 
                 // Remove the client from the network info.
                 RemoveFromInfo(session.IpAddress);
+
+                _lockReason = GameLockReason.DisconnectBroadcast;
 
                 BroadcastNetworkInfoInLock();
             }
