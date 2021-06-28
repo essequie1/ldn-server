@@ -84,6 +84,7 @@ namespace LanPlayServer
 
                 if (game.TestReadLock())
                 {
+                    HostedGames.Remove(game.Id, out HostedGame removed);
                     continue;
                 }
 
