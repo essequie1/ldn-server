@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  ldn-server:
+    build: ./
+    restart: always
+    ports:
+      - 30456:30456
+      - 8080:8080

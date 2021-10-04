@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading;
 
 namespace LanPlayServer
 {
@@ -34,7 +35,18 @@ namespace LanPlayServer
             Console.Write($"    ApiServer (port: {portApi}) starting...");
             apiServer.Start();
             Console.WriteLine(" Done!");
+#if DISABLE_CLI
+            Console.WriteLine("CLI disabled (docker mode)");
 
+            for (;;)
+            {
+                Console.WriteLine("Hourly LDN server analytics:");
+                List(ldnServer);
+
+                Thread.Sleep(3600 * 1000);
+            }
+
+#else
             Console.WriteLine();
             Console.WriteLine("- Commands");
             Console.WriteLine("    !restart-ldn -> Restart the LDN server.");
@@ -76,6 +88,7 @@ namespace LanPlayServer
             Console.Write("ApiServer stopping...");
             apiServer.Stop();
             Console.WriteLine(" Done!");
+#endif
         }
 
         static bool RestartLdnServer(LdnServer ldnServer)
