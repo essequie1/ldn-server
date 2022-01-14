@@ -17,7 +17,9 @@ ENV \
     DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false \
     LC_ALL=en_US.UTF-8 \
     LANG=en_US.UTF-8
-RUN apk add --no-cache icu-libs
+
+RUN apk add --no-cache icu-libs && addgroup -S appgroup && adduser -S appuser -G appgroup && chown -R appuser:appgroup /app
+USER appuser
 
 EXPOSE 30456
 EXPOSE 8080
