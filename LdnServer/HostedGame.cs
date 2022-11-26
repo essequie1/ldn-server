@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace LanPlayServer
 {
@@ -506,13 +507,8 @@ namespace LanPlayServer
             });
         }
 
-        public void Disconnect(LdnSession session, bool expected)
+        private void DisconnectInternal(LdnSession session, bool expected)
         {
-            if (session == null)
-            {
-                return;
-            }
-
             EnterLock(GameLockReason.Disconnect);
 
             try
@@ -549,6 +545,26 @@ namespace LanPlayServer
             }
 
             ExitLock();
+        }
+
+        public void Disconnect(LdnSession session, bool expected)
+        {
+            if (session == null)
+            {
+                return;
+            }
+
+            if (_lock.IsReadLockHeld && !_lock.IsWriteLockHeld)
+            {
+                // Can't upgrade the lock, try disconnect in the background.
+                session.CurrentGame = null;
+
+                Task.Run(() => DisconnectInternal(session, expected));
+            }
+            else
+            {
+                DisconnectInternal(session, expected);
+            }
         }
 
         // NOTE: Unused.
