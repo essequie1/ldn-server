@@ -592,15 +592,24 @@ namespace LanPlayServer
 
         public void Close()
         {
-            EnterLock(GameLockReason.Close);
+            if (_lock.IsReadLockHeld && !_lock.IsWriteLockHeld)
+            {
+                // Can't upgrade the lock, try close in the background.
 
-            Console.WriteLine($"CLOSING: {Id}");
+                Task.Run(() => Close());
+            }
+            else
+            {
+                EnterLock(GameLockReason.Close);
 
-            _closed = true;
+                Console.WriteLine($"CLOSING: {Id}");
 
-            BroadcastInLock(_protocol.Encode(PacketId.Disconnect, new DisconnectMessage()));
+                _closed = true;
 
-            ExitLock();
+                BroadcastInLock(_protocol.Encode(PacketId.Disconnect, new DisconnectMessage()));
+
+                ExitLock();
+            }
         }
     }
 }
