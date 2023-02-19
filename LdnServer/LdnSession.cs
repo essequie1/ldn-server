@@ -10,6 +10,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Ryujinx.Common.Memory;
 
 namespace LanPlayServer
 {
@@ -17,11 +18,11 @@ namespace LanPlayServer
     {
         private const int ExternalProxyTimeout = 2;
 
-        public HostedGame CurrentGame { get; set; }
-        public byte[]     MacAddress  { get; private set; }
-        public uint       IpAddress   { get; private set; }
-        public uint       RealIpAddress { get; private set; }
-        public string     Passphrase  { get; private set; } = "";
+        public HostedGame   CurrentGame { get; set; }
+        public Array6<byte> MacAddress  { get; private set; }
+        public uint         IpAddress   { get; private set; }
+        public uint         RealIpAddress { get; private set; }
+        public string       Passphrase  { get; private set; } = "";
 
         public string     StringId => Id.ToString().Replace("-", "");
 
@@ -48,9 +49,9 @@ namespace LanPlayServer
         {
             _tcpServer = server;
 
-            MacAddress = new byte[6];
+            MacAddress = new Array6<byte>();
 
-            new Random().NextBytes(MacAddress);
+            new Random().NextBytes(MacAddress.AsSpan());
 
             _protocol = new RyuLdnProtocol();
 
@@ -140,16 +141,19 @@ namespace LanPlayServer
                 return;
             }
 
-            MacAddress = _tcpServer.MacAddresses.TryFind(LdnHelper.ByteArrayToString(message.Id), message.MacAddress, StringId);
+            MacAddress = _tcpServer.MacAddresses.TryFind(Convert.ToHexString(message.Id.AsSpan()), message.MacAddress.AsSpan(), StringId);
 
-            SendAsync(_protocol.Encode(PacketId.Initialize, new InitializeMessage() { Id = LdnHelper.StringToByteArray(StringId), MacAddress = MacAddress }));
+            Array16<byte> id = new();
+            Convert.FromHexString(StringId).CopyTo(id.AsSpan());
+
+            SendAsync(_protocol.Encode(PacketId.Initialize, new InitializeMessage() { Id = id, MacAddress = MacAddress }));
 
             _initialized = true;
         }
 
         private void HandlePassphrase(LdnHeader header, PassphraseMessage message)
         {
-            string passphrase = StringUtils.ReadUtf8String(message.Passphrase);
+            string passphrase = StringUtils.ReadUtf8String(message.Passphrase.AsSpan());
             Regex  match      = new Regex("Ryujinx-[0-9a-f]{8}");
             bool   valid      = passphrase == "" || (passphrase.Length == 16 && match.IsMatch(passphrase));
 
@@ -320,7 +324,6 @@ namespace LanPlayServer
             string id = Guid.NewGuid().ToString().Replace("-", "");
 
             AddressList dhcpConfig = new AddressList();
-            dhcpConfig.Addresses = new AddressEntry[8];
 
             AccessPointConfigToNetworkInfo(id, request.NetworkConfig, request.UserConfig, request.RyuNetworkConfig, request.SecurityConfig, dhcpConfig, advertiseData);
         }
@@ -335,7 +338,7 @@ namespace LanPlayServer
                 return;
             }
 
-            string id = LdnHelper.ByteArrayToString(request.SecurityParameter.SessionId);
+            string id = Convert.ToHexString(request.SecurityParameter.SessionId.AsSpan());
 
             AccessPointConfigToNetworkInfo(id, request.NetworkConfig, request.UserConfig, request.RyuNetworkConfig, request.SecurityConfig, request.AddressList, advertiseData);
         }
@@ -343,6 +346,9 @@ namespace LanPlayServer
         private void AccessPointConfigToNetworkInfo(string id, NetworkConfig networkConfig, UserConfig userConfig, RyuNetworkConfig ryuNetworkConfig, SecurityConfig securityConfig, AddressList dhcpConfig, byte[] advertiseData)
         {
             string userId = StringId;
+
+            Array16<byte> sessionID = new();
+            Convert.FromHexString(id).CopyTo(sessionID.AsSpan());
 
             NetworkInfo networkInfo = new NetworkInfo()
             {
@@ -353,7 +359,7 @@ namespace LanPlayServer
                         LocalCommunicationId = networkConfig.IntentId.LocalCommunicationId,
                         SceneId              = networkConfig.IntentId.SceneId
                     },
-                    SessionId = LdnHelper.StringToByteArray(id)
+                    SessionId = sessionID
                 },
                 Common = new CommonNetworkInfo()
                 {
@@ -364,25 +370,20 @@ namespace LanPlayServer
                     Ssid        = new Ssid()
                     {
                         Length = 32,
-                        Name   = Encoding.ASCII.GetBytes("12345678123456781234567812345678")
                     }
                 },
                 Ldn = new LdnNetworkInfo()
                 {
                     SecurityMode      = (ushort)securityConfig.SecurityMode,
-                    SecurityParameter = new byte[0x10],
                     NodeCountMax      = networkConfig.NodeCountMax,
                     NodeCount         = 0,
-                    Nodes             = new NodeInfo[8],
                     AdvertiseDataSize = (ushort)advertiseData.Length,
-                    AdvertiseData     = advertiseData,
-                    Unknown2          = new byte[0x8C],
                     AuthenticationId  = 0
                 }
             };
 
-            Array.Resize(ref networkInfo.Common.Ssid.Name, 0x21);
-            Array.Resize(ref networkInfo.Ldn.AdvertiseData, 0x180);
+            Encoding.ASCII.GetBytes("12345678123456781234567812345678").CopyTo(networkInfo.Common.Ssid.Name.AsSpan());
+            advertiseData.CopyTo(networkInfo.Ldn.AdvertiseData.AsSpan());
 
             NodeInfo myInfo = new NodeInfo()
             {
@@ -392,17 +393,11 @@ namespace LanPlayServer
                 IsConnected               = 0x01,
                 UserName                  = userConfig.UserName,
                 LocalCommunicationVersion = networkConfig.LocalCommunicationVersion,
-                Reserved2                 = new byte[0x10]
             };
 
             for (int i = 0; i < 8; i++)
             {
-                networkInfo.Ldn.Nodes[i] = new NodeInfo()
-                {
-                    MacAddress = new byte[6],
-                    UserName   = new byte[0x21],
-                    Reserved2  = new byte[0x10]
-                };
+                networkInfo.Ldn.Nodes[i] = new NodeInfo();
             }
 
             if (ryuNetworkConfig.ExternalProxyPort != 0 && !IsProxyReachable(ryuNetworkConfig.ExternalProxyPort))
@@ -551,7 +546,7 @@ namespace LanPlayServer
                 return;
             }
 
-            string id = LdnHelper.ByteArrayToString(networkInfo.NetworkId.SessionId);
+            string id = Convert.ToHexString(networkInfo.NetworkId.SessionId.AsSpan());
 
             ConnectImpl(id, userConfig, localCommunicationVersion);
         }
@@ -570,7 +565,7 @@ namespace LanPlayServer
                 return;
             }
 
-            string id = LdnHelper.ByteArrayToString(request.SecurityParameter.SessionId);
+            string id = Convert.ToHexString(request.SecurityParameter.SessionId.AsSpan());
 
             ConnectImpl(id, userConfig, localCommunicationVersion);
         }

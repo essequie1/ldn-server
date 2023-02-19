@@ -6,6 +6,6 @@ namespace LanPlayServer.Network.Types
     struct ProxyDisconnectMessage
     {
         public ProxyInfo Info;
-        public int DisconnectReason;
+        public int       DisconnectReason;
     }
 }

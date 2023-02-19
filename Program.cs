@@ -155,7 +155,7 @@ namespace LanPlayServer
                     string id = game.Id;
                     NetworkInfo info = game.Info;
 
-                    ulong titleId = info.NetworkId.IntentId.LocalCommunicationId;
+                    ulong titleId = (ulong)info.NetworkId.IntentId.LocalCommunicationId;
                     string gameName = GameList.GetGameById(titleId)?.Name ?? "Unknown";
                     string titleString = titleId.ToString("x16");
 
@@ -188,7 +188,7 @@ namespace LanPlayServer
                     for (int i = 0; i < info.Ldn.NodeCount; i++)
                     {
                         NodeInfo player = info.Ldn.Nodes[i];
-                        string name = StringUtils.ReadUtf8String(player.UserName);
+                        string name = StringUtils.ReadUtf8String(player.UserName.AsSpan());
 
                         // Would like to print IP here, but needs a bit more work.
                         Console.WriteLine($"  - {name}");

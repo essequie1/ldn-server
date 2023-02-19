@@ -3,7 +3,6 @@ using Ryujinx.HLE.HOS.Services.Ldn.Types;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -22,7 +21,7 @@ namespace LanPlayServer
         private CancellationTokenSource _cancel = new CancellationTokenSource();
 
         public LdnServer(IPAddress address, int port) : base(address, port)
-        { 
+        {
             OptionNoDelay = true;
 
             Task.Run(BackgroundPingTask);
@@ -30,6 +29,7 @@ namespace LanPlayServer
 
         public HostedGame CreateGame(string id, NetworkInfo info, AddressList dhcpConfig, string oldOwnerID)
         {
+            id = id.ToLower();
             HostedGame game = new HostedGame(id, info, dhcpConfig);
             bool idTaken = false;
 
@@ -39,7 +39,6 @@ namespace LanPlayServer
                 {
                     oldGame.Close();
 
-                    Console.WriteLine($"NEW GAME: {id}");
                     return game;
                 }
                 else
@@ -62,6 +61,8 @@ namespace LanPlayServer
 
         public HostedGame FindGame(string id)
         {
+            id = id.ToLower();
+
             HostedGames.TryGetValue(id, out HostedGame result);
 
             return result;
@@ -120,7 +121,7 @@ namespace LanPlayServer
 
                 if (filter.Flag.HasFlag(ScanFilterFlag.SessionId))
                 {
-                    if (!scanInfo.NetworkId.SessionId.SequenceEqual(filter.NetworkId.SessionId))
+                    if (!scanInfo.NetworkId.SessionId.AsSpan().SequenceEqual(filter.NetworkId.SessionId.AsSpan()))
                     {
                         continue;
                     }
@@ -128,8 +129,8 @@ namespace LanPlayServer
 
                 if (filter.Flag.HasFlag(ScanFilterFlag.Ssid))
                 {
-                    IEnumerable<byte> gameSsid = scanInfo.Common.Ssid.Name.Take(scanInfo.Common.Ssid.Length);
-                    IEnumerable<byte> scanSsid = filter.Ssid.Name.Take(filter.Ssid.Length);
+                    Span<byte> gameSsid = scanInfo.Common.Ssid.Name.AsSpan()[..scanInfo.Common.Ssid.Length];
+                    Span<byte> scanSsid = filter.Ssid.Name.AsSpan()[..filter.Ssid.Length];
                     if (!gameSsid.SequenceEqual(scanSsid))
                     {
                         continue;
@@ -164,12 +165,12 @@ namespace LanPlayServer
 
         public void CloseGame(string id)
         {
-            HostedGames.Remove(id, out HostedGame removed);
+            HostedGames.Remove(id.ToLower(), out HostedGame removed);
             removed?.Close();
         }
 
         protected override TcpSession CreateSession()
-        { 
+        {
             return new LdnSession(this);
         }
 

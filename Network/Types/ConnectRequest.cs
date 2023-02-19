@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace LanPlayServer.Network.Types
 {
-    [StructLayout(LayoutKind.Sequential, Size = 0x4FC, CharSet = CharSet.Ansi)]
+    [StructLayout(LayoutKind.Sequential, Size = 0x4FC)]
     struct ConnectRequest
     {
         public SecurityConfig SecurityConfig;

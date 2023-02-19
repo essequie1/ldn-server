@@ -49,7 +49,7 @@ namespace LanPlayServer
             return output;
         }
 
-        public static string ReadUtf8String(byte[] data, int index = 0)
+        public static string ReadUtf8String(Span<byte> data, int index = 0)
         {
             int size = data.Length;
 

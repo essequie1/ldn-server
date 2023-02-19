@@ -8,6 +8,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Ryujinx.Common.Memory;
 
 namespace LanPlayServer
 {
@@ -183,7 +184,7 @@ namespace LanPlayServer
                 Owner = session;
                 _passphrase = session.Passphrase;
 
-                _gameVersion = Encoding.UTF8.GetString(request.GameVersion, 0, request.GameVersion.Length).Trim('\0');
+                _gameVersion = Encoding.UTF8.GetString(request.GameVersion.AsSpan().ToArray(), 0, request.GameVersion.Length).Trim('\0');
 
                 if (request.ExternalProxyPort != 0)
                 {
@@ -193,18 +194,17 @@ namespace LanPlayServer
 
                     _externalConfig = new ExternalProxyConfig()
                     {
-                        ProxyIp = AddressTo16Byte(address),
                         AddressFamily = address.AddressFamily,
                         ProxyPort = request.ExternalProxyPort,
-                        Token = new byte[10]
                     };
+
+                    AddressTo16Byte(address).CopyTo(_externalConfig.ProxyIp.AsSpan());
 
                     _privateConfig = new ExternalProxyConfig()
                     {
                         ProxyIp = request.PrivateIp,
                         AddressFamily = request.AddressFamily,
-                        ProxyPort = request.InternalProxyPort,
-                        Token = new byte[10]
+                        ProxyPort = request.InternalProxyPort
                     };
                 }
             }
@@ -219,20 +219,25 @@ namespace LanPlayServer
 
         private void InitExternalProxy(LdnSession session)
         {
-            IPAddress address          = (session.Socket.RemoteEndPoint as IPEndPoint).Address;
-            byte[]    addressBytes     = AddressTo16Byte(address);
-            bool      sessionIsPrivate = address.AddressFamily == _externalConfig.AddressFamily && addressBytes.SequenceEqual(_externalConfig.ProxyIp);
-            byte[]    token            = LdnHelper.StringToByteArray(Guid.NewGuid().ToString().Replace("-", ""));
+            IPAddress  address          = (session.Socket.RemoteEndPoint as IPEndPoint).Address;
+            Span<byte> addressBytes     = AddressTo16Byte(address).AsSpan();
+            bool       sessionIsPrivate = address.AddressFamily == _externalConfig.AddressFamily && addressBytes.SequenceEqual(_externalConfig.ProxyIp.AsSpan());
+            byte[]     token            = Convert.FromHexString(Guid.NewGuid().ToString().Replace("-", ""));
 
             // The proxy host needs to know about the new joiner.
 
             ExternalProxyToken tokenMsg = new ExternalProxyToken
             {
                 VirtualIp     = session.IpAddress,
-                PhysicalIp    = sessionIsPrivate ? new byte[16] : addressBytes,
-                AddressFamily = address.AddressFamily,
-                Token         = token
+                AddressFamily = address.AddressFamily
             };
+
+            token.CopyTo(tokenMsg.Token.AsSpan());
+
+            if (!sessionIsPrivate)
+            {
+                addressBytes.CopyTo(tokenMsg.PhysicalIp.AsSpan());
+            }
 
             Owner.SendAsync(_protocol.Encode(PacketId.ExternalProxyToken, tokenMsg));
 
@@ -240,7 +245,7 @@ namespace LanPlayServer
 
             ExternalProxyConfig configCopy = sessionIsPrivate ? _privateConfig : _externalConfig;
 
-            configCopy.Token = token;
+            token.CopyTo(configCopy.Token.AsSpan());
 
             session.SendAsync(_protocol.Encode(PacketId.ExternalProxy, configCopy));
         }
@@ -256,7 +261,7 @@ namespace LanPlayServer
                 return false;
             }
 
-            uint ip = _dhcp.RequestIpV4(session.MacAddress);
+            uint ip = _dhcp.RequestIpV4(session.MacAddress.AsSpan());
             if (!session.SetIpV4(ip, NetworkSubnetMask, !IsP2P))
             {
                 _dhcp.ReturnIpV4(ip);
@@ -330,7 +335,7 @@ namespace LanPlayServer
 
         private int LocateEmptyNode()
         {
-            NodeInfo[] nodes = Info.Ldn.Nodes;
+            Array8<NodeInfo> nodes = Info.Ldn.Nodes;
 
             for (int i = 0; i < nodes.Length; i++)
             {
@@ -351,7 +356,7 @@ namespace LanPlayServer
             {
                 // If they sent from a connection bound on 0.0.0.0, make others see it as them.
                 info.SourceIpV4 = sender.IpAddress;
-            } 
+            }
             else if (info.SourceIpV4 != sender.IpAddress)
             {
                 // Can't pretend to be somebody else.
@@ -379,7 +384,7 @@ namespace LanPlayServer
             else
             {
                 LdnSession target = _players.FirstOrDefault(player => player.IpAddress == destIp);
-                
+
                 if (target != null)
                 {
                     action(target);
@@ -407,7 +412,7 @@ namespace LanPlayServer
 
                     ExitLock();
                 }
-            } 
+            }
             else
             {
                 sender.SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage() { Error = NetworkError.RejectFailed }));
@@ -422,7 +427,7 @@ namespace LanPlayServer
             {
                 EnterLock(GameLockReason.SetAcceptPolicy);
 
-                _info.Ldn.StationAcceptPolicy = policy.StationAcceptPolicy;
+                _info.Ldn.StationAcceptPolicy = (byte)policy.StationAcceptPolicy;
 
                 BroadcastNetworkInfoInLock();
 
@@ -436,9 +441,11 @@ namespace LanPlayServer
             {
                 EnterLock(GameLockReason.SetAdvertiseData);
 
+                _info.Ldn.AdvertiseDataSize = (ushort)data.Length;
+
                 Array.Resize(ref data, 0x180);
 
-                _info.Ldn.AdvertiseData = data;
+                data.CopyTo(_info.Ldn.AdvertiseData.AsSpan());
 
                 BroadcastNetworkInfoInLock();
 

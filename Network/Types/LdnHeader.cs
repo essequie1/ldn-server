@@ -8,6 +8,6 @@ namespace LanPlayServer.Network.Types
         public uint Magic;
         public byte Type;
         public byte Version;
-        public int DataSize;
+        public int  DataSize;
     }
 }

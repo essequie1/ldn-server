@@ -57,7 +57,7 @@ namespace LanPlayServer
             }
         }
 
-        private uint ReservedIpLookup(byte[] macAddress)
+        private uint ReservedIpLookup(Span<byte> macAddress)
         {
             for (int i = 0; i < 8; i++)
             {
@@ -68,7 +68,7 @@ namespace LanPlayServer
                     break; // End of list.
                 }
 
-                if (address.MacAddress.SequenceEqual(macAddress))
+                if (address.MacAddress.AsSpan().SequenceEqual(macAddress))
                 {
                     return address.Ipv4Address;
                 }
@@ -91,7 +91,7 @@ namespace LanPlayServer
             while (!IsIpValid(_nextIp));
         }
 
-        public uint RequestIpV4(byte[] macAddress)
+        public uint RequestIpV4(Span<byte> macAddress)
         {
             lock (_lock)
             {

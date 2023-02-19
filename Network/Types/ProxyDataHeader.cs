@@ -9,6 +9,6 @@ namespace LanPlayServer.Network.Types
     struct ProxyDataHeader
     {
         public ProxyInfo Info;
-        public uint DataLength; // Followed by the data with the specified byte length.
+        public uint      DataLength; // Followed by the data with the specified byte length.
     }
 }

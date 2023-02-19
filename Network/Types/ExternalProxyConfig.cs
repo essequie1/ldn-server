@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using Ryujinx.Common.Memory;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
 namespace LanPlayServer.Network.Types
@@ -10,13 +11,9 @@ namespace LanPlayServer.Network.Types
     [StructLayout(LayoutKind.Sequential, Size = 0x26, Pack = 1)]
     struct ExternalProxyConfig
     {
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 0x10)]
-        public byte[] ProxyIp;
+        public Array16<byte> ProxyIp;
         public AddressFamily AddressFamily;
-
-        public ushort ProxyPort;
-
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 0x10)]
-        public byte[] Token;
+        public ushort        ProxyPort;
+        public Array16<byte> Token;
     }
 }
