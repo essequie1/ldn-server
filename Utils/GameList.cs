@@ -1,7 +1,7 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 
 namespace LanPlayServer
 {
@@ -33,7 +33,8 @@ namespace LanPlayServer
         static GameList() {
             try
             {
-                JsonGame[] data = JsonConvert.DeserializeObject<JsonGame[]>(File.ReadAllText("Utils/gamelist.json"));
+
+                JsonGame[] data = JsonSerializer.Deserialize<JsonGame[]>(File.ReadAllText("Utils/gamelist.json"));
 
                 foreach (JsonGame game in data)
                 {

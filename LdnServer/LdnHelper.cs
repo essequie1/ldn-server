@@ -1,7 +1,8 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace LanPlayServer
 {
@@ -37,7 +38,11 @@ namespace LanPlayServer
 
         public static void Dump<T>(this T x)
         {
-            string json = JsonConvert.SerializeObject(x, Formatting.Indented);
+            var options = JsonSerializerOptions.Default;
+            options.IncludeFields = true;
+            options.WriteIndented = true;
+
+            var json = JsonSerializer.Serialize(x, options);
 
             Console.WriteLine(json);
         }
