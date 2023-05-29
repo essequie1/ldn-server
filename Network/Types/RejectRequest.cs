@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace LanPlayServer.Network.Types
 {
     [StructLayout(LayoutKind.Sequential, Size = 0x8)]
-    struct RejectRequest
+    public struct RejectRequest
     {
         public uint NodeId;
         public DisconnectReason DisconnectReason;

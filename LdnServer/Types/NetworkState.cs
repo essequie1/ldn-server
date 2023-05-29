@@ -1,6 +1,6 @@
 ﻿namespace Ryujinx.HLE.HOS.Services.Ldn.Types
 {
-    enum NetworkState
+    public enum NetworkState
     {
         None,
         Initialized,

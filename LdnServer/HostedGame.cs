@@ -33,7 +33,7 @@ namespace LanPlayServer
         Close
     }
 
-    class HostedGame
+    public class HostedGame
     {
         private const uint NetworkBaseAddress = 0x0a720000; // 10.114.0.0 (our "virtual network")
         private const uint NetworkSubnetMask  = 0xffff0000; // 255.255.0.0
@@ -226,7 +226,7 @@ namespace LanPlayServer
 
             // The proxy host needs to know about the new joiner.
 
-            ExternalProxyToken tokenMsg = new ExternalProxyToken
+            ExternalProxyToken tokenMsg = new()
             {
                 VirtualIp     = session.IpAddress,
                 AddressFamily = address.AddressFamily
@@ -548,7 +548,7 @@ namespace LanPlayServer
             }
             catch (Exception e)
             {
-                Console.WriteLine("SUPER FATAL ERROR: " + e.ToString());
+                Console.WriteLine("SUPER FATAL ERROR: " + e);
             }
 
             ExitLock();

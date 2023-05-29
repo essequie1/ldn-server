@@ -3,7 +3,7 @@
 namespace LanPlayServer.Network.Types
 {
     [StructLayout(LayoutKind.Sequential, Size = 0x4)]
-    struct DisconnectMessage
+    public struct DisconnectMessage
     {
         public uint DisconnectIP;
     }

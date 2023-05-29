@@ -1,6 +1,6 @@
 ﻿namespace Ryujinx.HLE.HOS.Services.Ldn.Types
 {
-    enum NetworkType : uint
+    public enum NetworkType : uint
     {
         None,
         General,

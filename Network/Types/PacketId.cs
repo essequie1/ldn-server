@@ -1,6 +1,6 @@
 ﻿namespace LanPlayServer.Network.Types
 {
-    enum PacketId
+    public enum PacketId
     {
         Initialize,
         Passphrase,

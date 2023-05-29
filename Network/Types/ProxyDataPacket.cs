@@ -1,6 +1,6 @@
 ﻿namespace LanPlayServer.Network.Types
 {
-    class ProxyDataPacket
+    public class ProxyDataPacket
     {
         public ProxyDataHeader Header;
         public byte[]          Data;

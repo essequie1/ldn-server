@@ -3,7 +3,7 @@
 namespace Ryujinx.HLE.HOS.Services.Ldn.Types
 {
     [Flags]
-    enum NodeLatestUpdateFlags : byte
+    public enum NodeLatestUpdateFlags : byte
     {
         None = 0,
         Connect = 1 << 0,

@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace LanPlayServer.Network.Types
 {
     [StructLayout(LayoutKind.Sequential, Size = 0x4FC)]
-    struct ConnectRequest
+    public struct ConnectRequest
     {
         public SecurityConfig SecurityConfig;
         public UserConfig     UserConfig;

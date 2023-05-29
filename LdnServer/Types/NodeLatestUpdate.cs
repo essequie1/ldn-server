@@ -4,13 +4,13 @@ using System.Runtime.InteropServices;
 namespace Ryujinx.HLE.HOS.Services.Ldn.Types
 {
     [StructLayout(LayoutKind.Sequential, Size = 8)]
-    struct NodeLatestUpdate
+    public struct NodeLatestUpdate
     {
         public NodeLatestUpdateFlags State;
         public Array7<byte>          Reserved;
     }
 
-    static class NodeLatestUpdateHelper
+    public static class NodeLatestUpdateHelper
     {
         private static readonly object _lock = new();
 

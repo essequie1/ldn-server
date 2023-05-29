@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace LanPlayServer
 {
-    class LdnServer : TcpServer
+    public class LdnServer : TcpServer
     {
         public static readonly int InactivityPingFrequency = 10000;
 

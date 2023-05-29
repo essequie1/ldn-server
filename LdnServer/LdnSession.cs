@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace LanPlayServer
 {
-    class LdnSession : TcpSession
+    public class LdnSession : TcpSession
     {
         private const int ExternalProxyTimeout = 2;
 

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace LanPlayServer
 {
-    class MacAddressMemory
+    public class MacAddressMemory
     {
         private HashSet<string> _reservedAddresses = new HashSet<string>();
         private ConcurrentDictionary<string, Array6<byte>> _idToAddress = new ConcurrentDictionary<string, Array6<byte>>();

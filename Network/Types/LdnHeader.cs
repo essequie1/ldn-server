@@ -3,7 +3,7 @@
 namespace LanPlayServer.Network.Types
 {
     [StructLayout(LayoutKind.Sequential, Size = 0xA)]
-    struct LdnHeader
+    public struct LdnHeader
     {
         public uint Magic;
         public byte Type;

@@ -7,7 +7,7 @@ namespace LanPlayServer.Network.Types
     /// Information included in all proxied communication.
     /// </summary>
     [StructLayout(LayoutKind.Sequential, Size = 0x10, Pack = 1)]
-    struct ProxyInfo
+    public struct ProxyInfo
     {
         public uint   SourceIpV4;
         public ushort SourcePort;
