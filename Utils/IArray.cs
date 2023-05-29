@@ -1,4 +1,4 @@
-﻿namespace Ryujinx.Common.Memory
+﻿namespace LanPlayServer.Utils
 {
     /// <summary>
     /// Array interface.

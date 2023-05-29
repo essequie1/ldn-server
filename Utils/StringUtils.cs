@@ -4,13 +4,13 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace LanPlayServer
+namespace LanPlayServer.Utils
 {
     static class StringUtils
     {
         public static byte[] GetFixedLengthBytes(string inputString, int size, Encoding encoding)
         {
-            inputString = inputString + "\0";
+            inputString += "\0";
 
             int bytesCount = encoding.GetByteCount(inputString);
 
@@ -53,22 +53,20 @@ namespace LanPlayServer
         {
             int size = data.Length;
 
-            using (MemoryStream ms = new MemoryStream())
+            using MemoryStream ms = new();
+            while (size-- > 0)
             {
-                while (size-- > 0)
+                byte value = data[index++];
+
+                if (value == 0)
                 {
-                    byte value = data[index++];
-
-                    if (value == 0)
-                    {
-                        break;
-                    }
-
-                    ms.WriteByte(value);
+                    break;
                 }
 
-                return Encoding.UTF8.GetString(ms.ToArray());
+                ms.WriteByte(value);
             }
+
+            return Encoding.UTF8.GetString(ms.ToArray());
         }
     }
 }

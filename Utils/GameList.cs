@@ -1,25 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
+﻿using System.Collections.Generic;
+using System.Globalization;
+using System.Text.Json.Serialization;
 
-namespace LanPlayServer
+namespace LanPlayServer.Utils
 {
     public class Game
     {
-        public ulong  ID;
+        [JsonPropertyName("id")]
+        public string IdString;
+
+        [JsonPropertyName("name")]
         public string Name;
 
         public Game(ulong id, string name)
         {
-            ID   = id;
+            var hexString = id.ToString("x16");
+
+            IdString = $"0x{hexString}";
             Name = name;
         }
-    }
-    public class JsonGame
-    {
-        public string id;
-        public string name;
+
+        public ulong? GetId()
+        {
+            if (string.IsNullOrWhiteSpace(IdString) || !ulong.TryParse(IdString[2..], NumberStyles.HexNumber, null, out ulong result))
+            {
+                return null;
+            }
+
+            return result;
+        }
     }
 
     public static class GameList
@@ -28,34 +37,29 @@ namespace LanPlayServer
         // We still need to be able to provide game specific info, as we might want to parse AdvertiseData or do special things for different games.
         // (eg. a mode to regulate framerate to keep sync in Mario Kart would be nice)
 
-        private static Dictionary<ulong, Game> _games = new Dictionary<ulong, Game>();
+        private static readonly GameSerializerContext GameJsonContext = new(JsonHelper.GetDefaultSerializerOptions(false));
 
-        static GameList() {
-            try
+        private static readonly Dictionary<ulong, Game> Games = new();
+
+        public static void Initialize(string jsonString) {
+            List<Game> data = JsonHelper.Deserialize(jsonString, GameJsonContext.ListGame);
+
+            foreach (Game game in data)
             {
+                ulong? gameId = game.GetId();
 
-                JsonGame[] data = JsonSerializer.Deserialize<JsonGame[]>(File.ReadAllText("Utils/gamelist.json"));
-
-                foreach (JsonGame game in data)
+                if (!gameId.HasValue)
                 {
-                    try
-                    {
-                        ulong id = ulong.Parse(game.id.Substring(2), System.Globalization.NumberStyles.HexNumber);
-
-                        _games[id] = new Game(id, game.name);
-                    }
-                    catch (Exception)
-                    {
-
-                    }
+                    continue;
                 }
+
+                Games[gameId.Value] = game;
             }
-            catch (Exception) { }
         }
 
         public static Game GetGameById(ulong id)
         {
-            _games.TryGetValue(id, out Game result);
+            Games.TryGetValue(id, out Game result);
 
             return result;
         }

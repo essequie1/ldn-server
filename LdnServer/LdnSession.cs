@@ -1,5 +1,6 @@
 ﻿using LanPlayServer.Network;
 using LanPlayServer.Network.Types;
+using LanPlayServer.Utils;
 using NetCoreServer;
 using Ryujinx.HLE.HOS.Services.Ldn.Types;
 using System;
@@ -10,7 +11,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Ryujinx.Common.Memory;
 
 namespace LanPlayServer
 {

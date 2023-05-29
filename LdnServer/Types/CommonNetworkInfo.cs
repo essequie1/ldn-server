@@ -1,4 +1,4 @@
-﻿using Ryujinx.Common.Memory;
+﻿using LanPlayServer.Utils;
 using System.Runtime.InteropServices;
 
 namespace Ryujinx.HLE.HOS.Services.Ldn.Types

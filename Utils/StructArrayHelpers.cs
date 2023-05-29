@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace Ryujinx.Common.Memory
+namespace LanPlayServer.Utils
 {
     public struct Array1<T> : IArray<T> where T : unmanaged
     {

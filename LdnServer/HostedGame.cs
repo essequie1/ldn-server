@@ -1,5 +1,6 @@
 ﻿using LanPlayServer.Network;
 using LanPlayServer.Network.Types;
+using LanPlayServer.Utils;
 using Ryujinx.HLE.HOS.Services.Ldn.Types;
 using System;
 using System.Collections.Generic;
@@ -8,7 +9,6 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Ryujinx.Common.Memory;
 
 namespace LanPlayServer
 {
