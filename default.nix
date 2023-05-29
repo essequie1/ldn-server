@@ -16,9 +16,7 @@ buildDotnetModule rec {
   dotnet-runtime = dotnetCorePackages.runtime_7_0;
   selfContainedBuild = false;
 
-  dotnetFlags = [
-    "-p:ExtraDefineConstants=DISABLE_CLI"
-  ];
+  dotnetFlags = [  ];
 
   executables = [ "LanPlayServer" ];
 }

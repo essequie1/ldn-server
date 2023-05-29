@@ -7,18 +7,10 @@ namespace LanPlayServer.Utils
     public class Game
     {
         [JsonPropertyName("id")]
-        public string IdString;
+        public string IdString { get; set; }
 
         [JsonPropertyName("name")]
-        public string Name;
-
-        public Game(ulong id, string name)
-        {
-            var hexString = id.ToString("x16");
-
-            IdString = $"0x{hexString}";
-            Name = name;
-        }
+        public string Name { get; set; }
 
         public ulong? GetId()
         {

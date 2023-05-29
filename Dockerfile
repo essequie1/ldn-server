@@ -2,13 +2,16 @@ FROM mcr.microsoft.com/dotnet/sdk:7.0-alpine AS build
 LABEL "author"="Mary <contact@mary.zone>"
 WORKDIR /source
 
+# Install NativeAOT build prerequisites
+RUN apk add --no-cache clang gcc musl-dev zlib-dev
+
 COPY *.csproj .
-RUN dotnet restore -r linux-musl-x64 /p:PublishReadyToRun=true
+RUN dotnet restore -r linux-musl-x64
 
 COPY . .
-RUN dotnet publish -c release -o /app -r linux-musl-x64 --self-contained true --no-restore /p:ExtraDefineConstants=DISABLE_CLI /p:PublishTrimmed=true /p:PublishReadyToRun=true /p:PublishSingleFile=true
+RUN dotnet publish -c release -o /app -r linux-musl-x64 --no-restore LanPlayServer.csproj
 
-FROM mcr.microsoft.com/dotnet/runtime-deps:7.0-alpine-amd64
+FROM alpine:latest
 WORKDIR /app
 COPY --from=build /app .
 
@@ -22,5 +25,4 @@ RUN apk add --no-cache icu-libs && addgroup -S appgroup && adduser -S appuser -G
 USER appuser
 
 EXPOSE 30456
-EXPOSE 8080
 ENTRYPOINT ["./LanPlayServer"]

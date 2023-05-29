@@ -3,6 +3,7 @@ using System.Net;
 using LanPlayServer.Stats;
 using LanPlayServer.Utils;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Timers;
 using Timer = System.Timers.Timer;
@@ -13,16 +14,24 @@ namespace LanPlayServer
     {
         private static readonly IPAddress Host = IPAddress.Parse(Environment.GetEnvironmentVariable("LDN_HOST") ?? "0.0.0.0");
         private static readonly int Port = int.Parse(Environment.GetEnvironmentVariable("LDN_PORT") ?? "30456");
-        private static readonly string GamelistPath = Environment.GetEnvironmentVariable("LDN_GAMELIST_PATH") ?? "Utils/gamelist.json";
+        private static readonly string GamelistPath = Environment.GetEnvironmentVariable("LDN_GAMELIST_PATH") ?? "gamelist.json";
         private static readonly string StatsDirectory = Environment.GetEnvironmentVariable("LDN_STATS_DIRECTORY");
         private static readonly int IntervalMinutes =
             int.Parse(Environment.GetEnvironmentVariable("LDN_STATS_INTERVAL") ?? "2");
+
+        private static readonly ManualResetEventSlim _stopEvent = new();
 
         private static LdnServer _ldnServer;
         private static Timer _statsTimer;
 
         static void Main()
         {
+            Console.CancelKeyPress += (_, _) => _stopEvent.Set();
+            PosixSignalRegistration.Create(PosixSignal.SIGINT, _ => _stopEvent.Set());
+            PosixSignalRegistration.Create(PosixSignal.SIGHUP, _ => _stopEvent.Set());
+            PosixSignalRegistration.Create(PosixSignal.SIGQUIT, _ => _stopEvent.Set());
+            PosixSignalRegistration.Create(PosixSignal.SIGTERM, _ => _stopEvent.Set());
+
             Console.WriteLine();
             Console.WriteLine( "__________                     __ .__                  .____         .___        ");
             Console.WriteLine(@"\______   \ ___.__. __ __     |__||__|  ____  ___  ___ |    |      __| _/  ____  ");
@@ -53,13 +62,10 @@ namespace LanPlayServer
             _ldnServer.Start();
             Console.WriteLine(" Done!");
 
-            while (_ldnServer.IsAccepting)
-            {
-                Thread.Sleep(100);
-            }
+            _stopEvent.Wait();
 
-            _ldnServer.Dispose();
             _statsTimer.Close();
+            _ldnServer.Dispose();
         }
 
         static void DumpStats(object sender, ElapsedEventArgs elapsedEventArgs)

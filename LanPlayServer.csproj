@@ -10,5 +10,12 @@
   <ItemGroup>
     <PackageReference Include="NetCoreServer" Version="7.0.0" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <Content Include="Utils/gamelist.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>gamelist.json</TargetPath>      
+    </Content>
+  </ItemGroup>
 
 </Project>
