@@ -4,40 +4,11 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
     <DefineConstants Condition=" '$(ExtraDefineConstants)' != '' ">$(DefineConstants);$(ExtraDefineConstants)</DefineConstants>
+    <PublishAot>true</PublishAot>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="NetCoreServer" Version="7.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="www\img\favicon.120x120.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="www\img\favicon.16x16.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="www\img\favicon.32x32.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="www\img\favicon.76x76.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="www\img\favicon.96x96.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="www\index.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="www\main.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="www\style.css">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Utils\gamelist.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

@@ -1,18 +1,28 @@
-﻿using Ryujinx.HLE.HOS.Services.Ldn.Types;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Net;
+using LanPlayServer.Stats;
+using LanPlayServer.Utils;
+using System.IO;
 using System.Threading;
+using System.Timers;
+using Timer = System.Timers.Timer;
 
 namespace LanPlayServer
 {
-    class Program
+    static class Program
     {
-        static void Main(string[] args)
-        {
-            int portLdn = 30456;
-            int portApi = 8080;
+        private static readonly IPAddress Host = IPAddress.Parse(Environment.GetEnvironmentVariable("LDN_HOST") ?? "0.0.0.0");
+        private static readonly int Port = int.Parse(Environment.GetEnvironmentVariable("LDN_PORT") ?? "30456");
+        private static readonly string GamelistPath = Environment.GetEnvironmentVariable("LDN_GAMELIST_PATH") ?? "Utils/gamelist.json";
+        private static readonly string StatsDirectory = Environment.GetEnvironmentVariable("LDN_STATS_DIRECTORY");
+        private static readonly int IntervalMinutes =
+            int.Parse(Environment.GetEnvironmentVariable("LDN_STATS_INTERVAL") ?? "2");
 
+        private static LdnServer _ldnServer;
+        private static Timer _statsTimer;
+
+        static void Main()
+        {
             Console.WriteLine();
             Console.WriteLine( "__________                     __ .__                  .____         .___        ");
             Console.WriteLine(@"\______   \ ___.__. __ __     |__||__|  ____  ___  ___ |    |      __| _/  ____  ");
@@ -23,190 +33,40 @@ namespace LanPlayServer
             Console.WriteLine();
             Console.WriteLine( "_________________________________________________________________________________");
             Console.WriteLine();
-            Console.WriteLine("- Informations");
+            Console.WriteLine("- Information");
 
-            LdnServer     ldnServer = new LdnServer(IPAddress.Any, portLdn);
-            ApiServer apiServer = new ApiServer(IPAddress.Any, portApi, ldnServer);
-
-            Console.Write($"    LdnServer (port: {portLdn}) starting...");
-            ldnServer.Start();
+            Console.Write($"\tReading '{GamelistPath}'...");
+            GameList.Initialize(File.ReadAllText(GamelistPath));
             Console.WriteLine(" Done!");
 
-            Console.Write($"    ApiServer (port: {portApi}) starting...");
-            apiServer.Start();
-            Console.WriteLine(" Done!");
-#if DISABLE_CLI
-            Console.WriteLine("CLI disabled (docker mode)");
-
-            for (;;)
+            _statsTimer = new(TimeSpan.FromMinutes(IntervalMinutes))
             {
-                Console.WriteLine("Hourly LDN server analytics:");
-                List(ldnServer);
+                AutoReset = true,
+            };
 
-                Thread.Sleep(3600 * 1000);
+            _statsTimer.Elapsed += DumpStats;
+            _statsTimer.Start();
+
+            _ldnServer = new(Host, Port);
+
+            Console.Write($"\tLdnServer (port: {Port}) starting...");
+            _ldnServer.Start();
+            Console.WriteLine(" Done!");
+
+            while (_ldnServer.IsAccepting)
+            {
+                Thread.Sleep(100);
             }
 
-#else
-            Console.WriteLine();
-            Console.WriteLine("- Commands");
-            Console.WriteLine("    !restart-ldn -> Restart the LDN server.");
-            Console.WriteLine("    !restart-api -> Restart the API server.");
-            Console.WriteLine("    !close       -> Close all servers.");
-            Console.WriteLine("    !list        -> Get LDN server analytics.");
-            Console.WriteLine("_________________________________________________________________________________");
-            Console.WriteLine();
-            Console.WriteLine("Type a command:");
-
-            for (;;)
-            {
-                string line = Console.ReadLine();
-
-                if (line == "!close")
-                {
-                    break;
-                }
-
-                bool commandValid = line switch {
-                    "!restart-ldn" => RestartLdnServer(ldnServer),
-                    "!restart-api" => RestartApiServer(apiServer),
-                    "!list"        => List(ldnServer),
-                    _ => false
-                };
-
-                if (!commandValid)
-                {
-                    Console.WriteLine("Invalid command.");
-                    Console.WriteLine();
-                    Console.WriteLine("Type a command:");
-                }
-            }
-
-            Console.Write("LdnServer stopping...");
-            ldnServer.Stop();
-            Console.WriteLine(" Done!");
-
-            Console.Write("ApiServer stopping...");
-            apiServer.Stop();
-            Console.WriteLine(" Done!");
-#endif
+            _ldnServer.Dispose();
+            _statsTimer.Close();
         }
 
-        static bool RestartLdnServer(LdnServer ldnServer)
+        static void DumpStats(object sender, ElapsedEventArgs elapsedEventArgs)
         {
-            Console.Write("    !restart-ldn: LDN Server restarting...");
-            ldnServer.Restart();
-            Console.WriteLine("Done!");
-
-            return true;
-        }
-
-        static bool RestartApiServer(ApiServer apiServer)
-        {
-            Console.Write("    !restart-api: API Server restarting...");
-            apiServer.Restart();
-            Console.WriteLine("Done!");
-
-            return true;
-        }
-
-        // TODO: Maybe handle that in the API with a password or something ?
-        static bool List(LdnServer server)
-        {
-            KeyValuePair<string, HostedGame>[] games = server.All();
-
-            Dictionary<string, List<HostedGame>> gamesByPassphrase = new Dictionary<string, List<HostedGame>>();
-
-            foreach (KeyValuePair<string, HostedGame> game in games)
-            {
-                if (game.Value.TestReadLock())
-                {
-                    continue;
-                }
-
-                string passphrase = game.Value.Passphrase ?? "";
-
-                List<HostedGame> target;
-                if (!gamesByPassphrase.TryGetValue(passphrase, out target))
-                {
-                    target = new List<HostedGame>();
-
-                    gamesByPassphrase.Add(passphrase, target);
-                }
-
-                target.Add(game.Value);
-            }
-
-            int gameCount = 0;
-            int playerCount = 0;
-            int privateGameCount = 0;
-            int privatePlayerCount = 0;
-            int masterProxyCount = 0;
-            int inProgressCount = 0;
-
-            Console.WriteLine("   !list:");
-
-            foreach (KeyValuePair<string, List<HostedGame>> group in gamesByPassphrase)
-            {
-                bool publicGroup = group.Key == "";
-                Console.WriteLine(publicGroup ? "== PUBLIC ==" : $"== Passphrase: {group.Key} ==");
-
-                foreach (HostedGame game in group.Value)
-                {
-                    string id = game.Id;
-                    NetworkInfo info = game.Info;
-
-                    ulong titleId = (ulong)info.NetworkId.IntentId.LocalCommunicationId;
-                    string gameName = GameList.GetGameById(titleId)?.Name ?? "Unknown";
-                    string titleString = titleId.ToString("x16");
-
-                    string mode = game.IsP2P ? "P2P" : "Master Server Proxy";
-                    if (!game.IsP2P)
-                    {
-                        masterProxyCount++;
-                    }
-
-                    string status = "";
-
-                    gameCount++;
-
-                    if (!publicGroup)
-                    {
-                        privateGameCount++;
-                        privatePlayerCount += info.Ldn.NodeCount;
-                    }
-
-                    if (info.Ldn.StationAcceptPolicy == 1)
-                    {
-                        inProgressCount++;
-                        status = ", Not Joinable";
-                    }
-
-                    Console.WriteLine($" {id} ({info.Ldn.NodeCount}/{info.Ldn.NodeCountMax}): {gameName} ({titleString}) - {mode}{status}");
-
-                    playerCount += info.Ldn.NodeCount;
-
-                    for (int i = 0; i < info.Ldn.NodeCount; i++)
-                    {
-                        NodeInfo player = info.Ldn.Nodes[i];
-                        string name = StringUtils.ReadUtf8String(player.UserName.AsSpan());
-
-                        // Would like to print IP here, but needs a bit more work.
-                        Console.WriteLine($"  - {name}");
-                    }
-
-                    Console.WriteLine();
-                }
-            }
-
-            Console.WriteLine("==========");
-            Console.WriteLine("Game Summary:");
-            Console.WriteLine($"{gameCount} total games. ({privateGameCount} private, {gameCount - privateGameCount} public)");
-            Console.WriteLine($" {inProgressCount} games in progress (not joinable).");
-            Console.WriteLine($" {masterProxyCount} games using the master server as a proxy rather than P2P.");
-            Console.WriteLine("Player Summary:");
-            Console.WriteLine($"{playerCount} total players. ({privatePlayerCount} in private games, {playerCount - privatePlayerCount} in public)");
-
-            return true;
+            Console.WriteLine($"[{elapsedEventArgs.SignalTime}] [StatsDumper] Writing json files...");
+            StatsDumper.WriteJsonFiles(_ldnServer.All(), StatsDirectory).Wait();
+            Console.WriteLine($"[{DateTime.Now}] [StatsDumper] Done.");
         }
     }
 }

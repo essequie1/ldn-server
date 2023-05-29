@@ -3,6 +3,7 @@ using Ryujinx.HLE.HOS.Services.Ldn.Types;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -68,9 +69,9 @@ namespace LanPlayServer
             return result;
         }
 
-        public KeyValuePair<string, HostedGame>[] All()
+        public HostedGame[] All()
         {
-            return HostedGames.ToArray();
+            return HostedGames.Values.ToArray();
         }
 
         public int Scan(ref NetworkInfo[] info, ScanFilter filter, string passphrase, HostedGame exclude)

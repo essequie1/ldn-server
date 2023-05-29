@@ -1,4 +1,4 @@
-﻿namespace LanPlayServer
+﻿namespace LanPlayServer.Stats.Types
 {
     public class LdnAnalytics
     {
