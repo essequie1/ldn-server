@@ -14,11 +14,11 @@ namespace LanPlayServer
     {
         public static readonly int InactivityPingFrequency = 10000;
 
-        public ConcurrentDictionary<string, HostedGame> HostedGames = new ConcurrentDictionary<string, HostedGame>();
-        public MacAddressMemory MacAddresses { get; } = new MacAddressMemory();
+        private ConcurrentDictionary<string, HostedGame> HostedGames = new();
+        public MacAddressMemory MacAddresses { get; } = new();
         public bool UseProxy => true;
 
-        private CancellationTokenSource _cancel = new CancellationTokenSource();
+        private readonly CancellationTokenSource _cancel = new();
 
         public LdnServer(IPAddress address, int port) : base(address, port)
         {
@@ -30,7 +30,7 @@ namespace LanPlayServer
         public HostedGame CreateGame(string id, NetworkInfo info, AddressList dhcpConfig, string oldOwnerID)
         {
             id = id.ToLower();
-            HostedGame game = new HostedGame(id, info, dhcpConfig);
+            HostedGame game = new(id, info, dhcpConfig);
             bool idTaken = false;
 
             HostedGames.AddOrUpdate(id, game, (id, oldGame) =>

@@ -7,10 +7,10 @@ namespace LanPlayServer
 {
     public class MacAddressMemory
     {
-        private HashSet<string> _reservedAddresses = new HashSet<string>();
-        private ConcurrentDictionary<string, Array6<byte>> _idToAddress = new ConcurrentDictionary<string, Array6<byte>>();
-        private Random _random = new Random();
-        private object _lock = new object();
+        private HashSet<string> _reservedAddresses = new();
+        private ConcurrentDictionary<string, Array6<byte>> _idToAddress = new();
+        private Random _random = new();
+        private object _lock = new();
 
         private Array6<byte> GetNewMac()
         {

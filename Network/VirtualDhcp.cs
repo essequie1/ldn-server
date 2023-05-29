@@ -11,12 +11,12 @@ namespace LanPlayServer
     /// </summary>
     class VirtualDhcp
     {
-        private object _lock = new object();
+        private object _lock = new();
 
         private uint _nextIp;
 
-        private HashSet<uint> _takenIps = new HashSet<uint>();
-        private HashSet<uint> _reservedIps = new HashSet<uint>();
+        private HashSet<uint> _takenIps = new();
+        private HashSet<uint> _reservedIps = new();
         private AddressList _config;
 
         private uint _baseAddress;

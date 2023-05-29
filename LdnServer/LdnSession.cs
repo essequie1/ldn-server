@@ -7,7 +7,6 @@ using System;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,7 +40,7 @@ namespace LanPlayServer
 
         private bool _initialized = false;
         private bool _disconnected = false;
-        private object _connectionLock = new object();
+        private object _connectionLock = new();
 
         private bool _connected = false;
 
@@ -51,7 +50,7 @@ namespace LanPlayServer
 
             MacAddress = new Array6<byte>();
 
-            new Random().NextBytes(MacAddress.AsSpan());
+            Random.Shared.NextBytes(MacAddress.AsSpan());
 
             _protocol = new RyuLdnProtocol();
 
@@ -154,7 +153,7 @@ namespace LanPlayServer
         private void HandlePassphrase(LdnHeader header, PassphraseMessage message)
         {
             string passphrase = StringUtils.ReadUtf8String(message.Passphrase.AsSpan());
-            Regex  match      = new Regex("Ryujinx-[0-9a-f]{8}");
+            Regex  match      = new("Ryujinx-[0-9a-f]{8}");
             bool   valid      = passphrase == "" || (passphrase.Length == 16 && match.IsMatch(passphrase));
 
             Passphrase = valid ? passphrase : "";
@@ -279,7 +278,7 @@ namespace LanPlayServer
 
                 if (internalProxy)
                 {
-                    ProxyConfig config = new ProxyConfig
+                    ProxyConfig config = new()
                     {
                         ProxyIp         = ip,
                         ProxySubnetMask = subnet
@@ -323,7 +322,7 @@ namespace LanPlayServer
 
             string id = Guid.NewGuid().ToString().Replace("-", "");
 
-            AddressList dhcpConfig = new AddressList();
+            AddressList dhcpConfig = new();
 
             AccessPointConfigToNetworkInfo(id, request.NetworkConfig, request.UserConfig, request.RyuNetworkConfig, request.SecurityConfig, dhcpConfig, advertiseData);
         }
@@ -350,7 +349,7 @@ namespace LanPlayServer
             Array16<byte> sessionID = new();
             Convert.FromHexString(id).CopyTo(sessionID.AsSpan());
 
-            NetworkInfo networkInfo = new NetworkInfo()
+            NetworkInfo networkInfo = new()
             {
                 NetworkId = new NetworkId()
                 {
@@ -382,10 +381,10 @@ namespace LanPlayServer
                 }
             };
 
-            Encoding.ASCII.GetBytes("12345678123456781234567812345678").CopyTo(networkInfo.Common.Ssid.Name.AsSpan());
+            "12345678123456781234567812345678"u8.ToArray().CopyTo(networkInfo.Common.Ssid.Name.AsSpan());
             advertiseData.CopyTo(networkInfo.Ldn.AdvertiseData.AsSpan());
 
-            NodeInfo myInfo = new NodeInfo()
+            NodeInfo myInfo = new()
             {
                 Ipv4Address               = IpAddress,
                 MacAddress                = MacAddress,
@@ -457,9 +456,9 @@ namespace LanPlayServer
                 return false;
             }
 
-            IPEndPoint ep = new IPEndPoint(searchEndpoint.Address, port);
+            IPEndPoint ep = new(searchEndpoint.Address, port);
 
-            NetCoreServer.TcpClient client = new NetCoreServer.TcpClient(ep);
+            NetCoreServer.TcpClient client = new(ep);
             client.ConnectAsync();
 
             long endTime = Stopwatch.GetTimestamp() + Stopwatch.Frequency * ExternalProxyTimeout;
@@ -506,7 +505,7 @@ namespace LanPlayServer
                     return;
                 }
 
-                NodeInfo myNode = new NodeInfo
+                NodeInfo myNode = new()
                 {
                     Ipv4Address               = IpAddress,
                     MacAddress                = MacAddress,
