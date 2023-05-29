@@ -239,7 +239,7 @@ namespace LanPlayServer
                 addressBytes.CopyTo(tokenMsg.PhysicalIp.AsSpan());
             }
 
-            Owner.SendAsync(_protocol.Encode(PacketId.ExternalProxyToken, tokenMsg));
+            Owner.SendAsync(RyuLdnProtocol.Encode(PacketId.ExternalProxyToken, tokenMsg));
 
             // Tell the joiner about the new proxy host.
 
@@ -247,7 +247,7 @@ namespace LanPlayServer
 
             token.CopyTo(configCopy.Token.AsSpan());
 
-            session.SendAsync(_protocol.Encode(PacketId.ExternalProxy, configCopy));
+            session.SendAsync(RyuLdnProtocol.Encode(PacketId.ExternalProxy, configCopy));
         }
 
         public bool Connect(LdnSession session, NodeInfo node)
@@ -294,7 +294,7 @@ namespace LanPlayServer
             _players.Add(session);
 
             _lockReason = GameLockReason.ConnectFinal;
-            session.SendAsync(_protocol.Encode(PacketId.Connected, _info));
+            session.SendAsync(RyuLdnProtocol.Encode(PacketId.Connected, _info));
 
             ExitLock();
 
@@ -404,7 +404,7 @@ namespace LanPlayServer
                 {
                     ExitLock();
 
-                    sender.SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage() { Error = NetworkError.RejectFailed }));
+                    sender.SendAsync(RyuLdnProtocol.Encode(PacketId.NetworkError, new NetworkErrorMessage() { Error = NetworkError.RejectFailed }));
                 }
                 else
                 {
@@ -415,10 +415,10 @@ namespace LanPlayServer
             }
             else
             {
-                sender.SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage() { Error = NetworkError.RejectFailed }));
+                sender.SendAsync(RyuLdnProtocol.Encode(PacketId.NetworkError, new NetworkErrorMessage() { Error = NetworkError.RejectFailed }));
             }
 
-            sender.SendAsync(_protocol.Encode(PacketId.RejectReply));
+            sender.SendAsync(RyuLdnProtocol.Encode(PacketId.RejectReply));
         }
 
         public void HandleSetAcceptPolicy(LdnSession sender, LdnHeader header, SetAcceptPolicyRequest policy)
@@ -473,7 +473,7 @@ namespace LanPlayServer
                 {
                     // Indicate that the player is no longer connected to the game.
 
-                    player.SendAsync(_protocol.Encode(PacketId.Disconnect, new DisconnectMessage()));
+                    player.SendAsync(RyuLdnProtocol.Encode(PacketId.Disconnect, new DisconnectMessage()));
 
                     Disconnect(player, true);
                 }
@@ -486,7 +486,7 @@ namespace LanPlayServer
         {
             RouteMessage(sender, ref message.Info, (target) =>
             {
-                target.SendAsync(_protocol.Encode(PacketId.ProxyDisconnect, message));
+                target.SendAsync(RyuLdnProtocol.Encode(PacketId.ProxyDisconnect, message));
             });
         }
 
@@ -494,7 +494,7 @@ namespace LanPlayServer
         {
             RouteMessage(sender, ref message.Info, (target) =>
             {
-                target.SendAsync(_protocol.Encode(PacketId.ProxyData, message, data));
+                target.SendAsync(RyuLdnProtocol.Encode(PacketId.ProxyData, message, data));
             });
         }
 
@@ -502,7 +502,7 @@ namespace LanPlayServer
         {
             RouteMessage(sender, ref message.Info, (target) =>
             {
-                target.SendAsync(_protocol.Encode(PacketId.ProxyConnectReply, message));
+                target.SendAsync(RyuLdnProtocol.Encode(PacketId.ProxyConnectReply, message));
             });
         }
 
@@ -510,7 +510,7 @@ namespace LanPlayServer
         {
             RouteMessage(sender, ref message.Info, (target) =>
             {
-                target.SendAsync(_protocol.Encode(PacketId.ProxyConnect, message));
+                target.SendAsync(RyuLdnProtocol.Encode(PacketId.ProxyConnect, message));
             });
         }
 
@@ -526,7 +526,7 @@ namespace LanPlayServer
 
                 if (IsP2P && !expected)
                 {
-                    Owner?.SendAsync(_protocol.Encode(PacketId.ExternalProxyState, new ExternalProxyConnectionState
+                    Owner?.SendAsync(RyuLdnProtocol.Encode(PacketId.ExternalProxyState, new ExternalProxyConnectionState
                     {
                         IpAddress = session.IpAddress,
                         Connected = false
@@ -586,7 +586,7 @@ namespace LanPlayServer
 
         private void BroadcastNetworkInfoInLock()
         {
-            BroadcastInLock(_protocol.Encode(PacketId.SyncNetwork, _info));
+            BroadcastInLock(RyuLdnProtocol.Encode(PacketId.SyncNetwork, _info));
         }
 
         private void BroadcastInLock(byte[] buffer)
@@ -613,7 +613,7 @@ namespace LanPlayServer
 
                 _closed = true;
 
-                BroadcastInLock(_protocol.Encode(PacketId.Disconnect, new DisconnectMessage()));
+                BroadcastInLock(RyuLdnProtocol.Encode(PacketId.Disconnect, new DisconnectMessage()));
 
                 ExitLock();
             }

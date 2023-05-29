@@ -108,7 +108,7 @@ namespace LanPlayServer
 
                     _waitingPingID = pingId;
 
-                    SendAsync(_protocol.Encode(PacketId.Ping, new PingMessage { Id = pingId, Requester = 0 }));
+                    SendAsync(RyuLdnProtocol.Encode(PacketId.Ping, new PingMessage { Id = pingId, Requester = 0 }));
                 }
             }
         }
@@ -146,7 +146,7 @@ namespace LanPlayServer
             Array16<byte> id = new();
             Convert.FromHexString(StringId).CopyTo(id.AsSpan());
 
-            SendAsync(_protocol.Encode(PacketId.Initialize, new InitializeMessage() { Id = id, MacAddress = MacAddress }));
+            SendAsync(RyuLdnProtocol.Encode(PacketId.Initialize, new InitializeMessage() { Id = id, MacAddress = MacAddress }));
 
             _initialized = true;
         }
@@ -286,7 +286,7 @@ namespace LanPlayServer
                     };
 
                     // Tell the client about the proxy configuration.
-                    SendAsync(_protocol.Encode(PacketId.ProxyConfig, config));
+                    SendAsync(RyuLdnProtocol.Encode(PacketId.ProxyConfig, config));
                 }
 
                 return true;
@@ -305,10 +305,10 @@ namespace LanPlayServer
             {
                 NetworkInfo info = _scanBuffer[i];
 
-                SendAsync(_protocol.Encode(PacketId.ScanReply, info));
+                SendAsync(RyuLdnProtocol.Encode(PacketId.ScanReply, info));
             }
 
-            SendAsync(_protocol.Encode(PacketId.ScanReplyEnd));
+            SendAsync(RyuLdnProtocol.Encode(PacketId.ScanReplyEnd));
         }
 
         private void HandleCreateAccessPoint(LdnHeader ldnPacket, CreateAccessPointRequest request, byte[] advertiseData)
@@ -316,7 +316,7 @@ namespace LanPlayServer
             if (CurrentGame != null || !_initialized)
             {
                 // Cannot create an access point while in a game.
-                SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.Unknown }));
+                SendAsync(RyuLdnProtocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.Unknown }));
 
                 return;
             }
@@ -333,7 +333,7 @@ namespace LanPlayServer
             if (CurrentGame != null || !_initialized)
             {
                 // Cannot create an access point while in a game.
-                SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.Unknown }));
+                SendAsync(RyuLdnProtocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.Unknown }));
 
                 return;
             }
@@ -403,7 +403,7 @@ namespace LanPlayServer
             if (ryuNetworkConfig.ExternalProxyPort != 0 && !IsProxyReachable(ryuNetworkConfig.ExternalProxyPort))
             {
                 ryuNetworkConfig.ExternalProxyPort = 0;
-                SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.PortUnreachable }));
+                SendAsync(RyuLdnProtocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.PortUnreachable }));
             }
 
             /*
@@ -418,7 +418,7 @@ namespace LanPlayServer
 
             if (game == null)
             {
-                SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.Unknown }));
+                SendAsync(RyuLdnProtocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.Unknown }));
                 return;
             }
 
@@ -495,13 +495,13 @@ namespace LanPlayServer
 
                 if (clientVersion > hostVersion)
                 {
-                    SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.VersionTooHigh }));
+                    SendAsync(RyuLdnProtocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.VersionTooHigh }));
 
                     return;
                 }
                 else if (clientVersion < hostVersion)
                 {
-                    SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.VersionTooLow }));
+                    SendAsync(RyuLdnProtocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.VersionTooLow }));
 
                     return;
                 }
@@ -522,12 +522,12 @@ namespace LanPlayServer
                 {
                     // There wasn't enough room in the game.
 
-                    SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.TooManyPlayers }));
+                    SendAsync(RyuLdnProtocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.TooManyPlayers }));
                 }
             }
             else
             {
-                SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.ConnectNotFound }));
+                SendAsync(RyuLdnProtocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.ConnectNotFound }));
             }
         }
 
@@ -541,7 +541,7 @@ namespace LanPlayServer
 
             if (!_initialized)
             {
-                SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.ConnectFailure }));
+                SendAsync(RyuLdnProtocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.ConnectFailure }));
 
                 return;
             }
@@ -560,7 +560,7 @@ namespace LanPlayServer
 
             if (!_initialized)
             {
-                SendAsync(_protocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.ConnectFailure }));
+                SendAsync(RyuLdnProtocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.ConnectFailure }));
 
                 return;
             }

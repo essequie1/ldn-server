@@ -56,9 +56,9 @@ namespace LanPlayServer.Network
 
         public event Action<LdnHeader> Any;
 
-        public ConcurrentQueue<(LdnHeader, byte[])> _messages = new ConcurrentQueue<(LdnHeader, byte[])>();
+        public ConcurrentQueue<(LdnHeader, byte[])> _messages = new();
         public Thread _consumerThread;
-        public AutoResetEvent _messageReady = new AutoResetEvent(false);
+        public AutoResetEvent _messageReady = new(false);
         private bool _active = true;
 
         public RyuLdnProtocol(bool withConsumerThread = true)
@@ -81,16 +81,16 @@ namespace LanPlayServer.Network
                     try
                     {
                         DecodeAndHandle(result.Item1, result.Item2);
-                    } 
+                    }
                     catch (Exception e)
                     {
-                        Console.WriteLine($"Uncaught message exception: {e.ToString()}");
+                        Console.WriteLine($"Uncaught message exception: {e}");
                     }
                 }
             }
         }
 
-        public void Reset()
+        private void Reset()
         {
             _bufferEnd = 0;
         }
@@ -117,7 +117,7 @@ namespace LanPlayServer.Network
                 {
                     // The header is available. Make sure we received all the data (size specified in the header)
 
-                    LdnHeader ldnHeader = LdnHelper.FromBytes<LdnHeader>(_buffer);
+                    LdnHeader ldnHeader = MemoryMarshal.Read<LdnHeader>(_buffer);
 
                     if (ldnHeader.Magic != Magic)
                     {
@@ -159,15 +159,14 @@ namespace LanPlayServer.Network
             }
         }
 
-        private T ParseDefault<T>(byte[] data)
+        private static T ParseDefault<T>(byte[] data) where T : struct
         {
-            return LdnHelper.FromBytes<T>(data);
+            return MemoryMarshal.Read<T>(data);
         }
 
-        private (T, byte[]) ParseWithData<T>(byte[] data)
+        private static (T, byte[]) ParseWithData<T>(byte[] data) where T: struct
         {
-            T   str  = default;
-            int size = Marshal.SizeOf(str);
+            int size = Marshal.SizeOf<T>();
 
             byte[] remainder = new byte[data.Length - size];
 
@@ -176,7 +175,7 @@ namespace LanPlayServer.Network
                 Array.Copy(data, size, remainder, 0, remainder.Length);
             }
 
-            return (LdnHelper.FromBytes<T>(data), remainder);
+            return (ParseDefault<T>(data), remainder);
         }
 
         private void DecodeAndHandleDeferred(LdnHeader header, byte[] data)
@@ -240,19 +239,19 @@ namespace LanPlayServer.Network
                 case PacketId.ExternalProxy:
                     {
                         ExternalProxy?.Invoke(header, ParseDefault<ExternalProxyConfig>(data));
-                        
+
                         break;
                     }
                 case PacketId.ExternalProxyState:
                     {
                         ExternalProxyState?.Invoke(header, ParseDefault<ExternalProxyConnectionState>(data));
-                        
+
                         break;
                     }
                 case PacketId.ExternalProxyToken:
                     {
                         ExternalProxyToken?.Invoke(header, ParseDefault<ExternalProxyToken>(data));
-                        
+
                         break;
                     }
 
@@ -284,19 +283,19 @@ namespace LanPlayServer.Network
                 case PacketId.SetAcceptPolicy:
                     {
                         SetAcceptPolicy?.Invoke(header, ParseDefault<SetAcceptPolicyRequest>(data));
-                    
+
                         break;
                     }
                 case PacketId.SetAdvertiseData:
                     {
                         SetAdvertiseData?.Invoke(header, data);
-                    
+
                         break;
                     }
                 case PacketId.Connect:
                     {
                         Connect?.Invoke(header, ParseDefault<ConnectRequest>(data));
-                    
+
                         break;
                     }
                 case PacketId.ConnectPrivate:
@@ -308,7 +307,7 @@ namespace LanPlayServer.Network
                 case PacketId.Scan:
                     {
                         Scan?.Invoke(header, ParseDefault<ScanFilter>(data));
-                    
+
                         break;
                     }
 
@@ -316,19 +315,19 @@ namespace LanPlayServer.Network
                 case PacketId.ProxyConfig:
                     {
                         ProxyConfig?.Invoke(header, ParseDefault<ProxyConfig>(data));
-                    
+
                         break;
                     }
                 case PacketId.ProxyConnect:
                     {
                         ProxyConnect?.Invoke(header, ParseDefault<ProxyConnectRequest>(data));
-                    
+
                         break;
                     }
                 case PacketId.ProxyConnectReply:
                     {
                         ProxyConnectReply?.Invoke(header, ParseDefault<ProxyConnectResponse>(data));
-                    
+
                         break;
                     }
                 case PacketId.ProxyData:
@@ -342,7 +341,7 @@ namespace LanPlayServer.Network
                 case PacketId.ProxyDisconnect:
                     {
                         ProxyDisconnect?.Invoke(header, ParseDefault<ProxyDisconnectMessage>(data));
-                    
+
                         break;
                     }
 
@@ -350,21 +349,19 @@ namespace LanPlayServer.Network
                 case PacketId.Ping:
                     {
                         Ping?.Invoke(header, ParseDefault<PingMessage>(data));
-                    
+
                         break;
                     }
                 case PacketId.NetworkError:
                     {
                         NetworkError?.Invoke(header, ParseDefault<NetworkErrorMessage>(data));
-                    
+
                         break;
                     }
-
-                default: break;
             }
         }
 
-        private LdnHeader GetHeader(PacketId type, int dataSize)
+        private static LdnHeader GetHeader(PacketId type, int dataSize)
         {
             return new LdnHeader()
             {
@@ -375,46 +372,41 @@ namespace LanPlayServer.Network
             };
         }
 
-        public byte[] Encode(PacketId type)
+        public static byte[] Encode(PacketId type)
         {
             LdnHeader header = GetHeader(type, 0);
 
-            byte[] result = LdnHelper.StructureToByteArray(header);
+            byte[] result = new byte[Marshal.SizeOf<LdnHeader>()];
+
+            MemoryMarshal.Write(result, ref header);
 
             return result;
         }
 
-        public byte[] Encode(PacketId type, byte[] data)
+        public static byte[] Encode<T>(PacketId type, T packet) where T: struct
         {
-            LdnHeader header = GetHeader(type, data.Length);
-            
-            byte[] result = LdnHelper.StructureToByteArray(header, data.Length);
-
-            Array.Copy(data, 0, result, Marshal.SizeOf<LdnHeader>(), data.Length);
-
-            return result;
-        }
-
-        public byte[] Encode<T>(PacketId type, T packet)
-        {
-            byte[] packetData = LdnHelper.StructureToByteArray(packet);
+            byte[] packetData = new byte[Marshal.SizeOf<T>()];
+            MemoryMarshal.Write(packetData, ref packet);
 
             LdnHeader header = GetHeader(type, packetData.Length);
 
-            byte[] result = LdnHelper.StructureToByteArray(header, packetData.Length);
+            byte[] result = new byte[Marshal.SizeOf<LdnHeader>() + packetData.Length];
+            MemoryMarshal.Write(result, ref header);
 
             Array.Copy(packetData, 0, result, Marshal.SizeOf<LdnHeader>(), packetData.Length);
 
             return result;
         }
 
-        public byte[] Encode<T>(PacketId type, T packet, byte[] data)
+        public static byte[] Encode<T>(PacketId type, T packet, byte[] data) where T: struct
         {
-            byte[] packetData = LdnHelper.StructureToByteArray(packet);
+            byte[] packetData = new byte[Marshal.SizeOf<T>()];
+            MemoryMarshal.Write(packetData, ref packet);
 
             LdnHeader header = GetHeader(type, packetData.Length + data.Length);
 
-            byte[] result = LdnHelper.StructureToByteArray(header, packetData.Length + data.Length);
+            byte[] result = new byte[Marshal.SizeOf<LdnHeader>() + packetData.Length + data.Length];
+            MemoryMarshal.Write(result, ref header);
 
             Array.Copy(packetData, 0, result, Marshal.SizeOf<LdnHeader>(), packetData.Length);
             Array.Copy(data, 0, result, Marshal.SizeOf<LdnHeader>() + packetData.Length, data.Length);
