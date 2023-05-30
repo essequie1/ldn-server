@@ -19,18 +19,18 @@ namespace LanPlayServer
         private static readonly int IntervalMinutes =
             int.Parse(Environment.GetEnvironmentVariable("LDN_STATS_INTERVAL") ?? "2");
 
-        private static readonly ManualResetEventSlim _stopEvent = new();
+        private static readonly ManualResetEventSlim StopEvent = new();
 
         private static LdnServer _ldnServer;
         private static Timer _statsTimer;
 
         static void Main()
         {
-            Console.CancelKeyPress += (_, _) => _stopEvent.Set();
-            PosixSignalRegistration.Create(PosixSignal.SIGINT, _ => _stopEvent.Set());
-            PosixSignalRegistration.Create(PosixSignal.SIGHUP, _ => _stopEvent.Set());
-            PosixSignalRegistration.Create(PosixSignal.SIGQUIT, _ => _stopEvent.Set());
-            PosixSignalRegistration.Create(PosixSignal.SIGTERM, _ => _stopEvent.Set());
+            Console.CancelKeyPress += (_, _) => StopEvent.Set();
+            PosixSignalRegistration.Create(PosixSignal.SIGINT, _ => StopEvent.Set());
+            PosixSignalRegistration.Create(PosixSignal.SIGHUP, _ => StopEvent.Set());
+            PosixSignalRegistration.Create(PosixSignal.SIGQUIT, _ => StopEvent.Set());
+            PosixSignalRegistration.Create(PosixSignal.SIGTERM, _ => StopEvent.Set());
 
             Console.WriteLine();
             Console.WriteLine( "__________                     __ .__                  .____         .___        ");
@@ -62,7 +62,7 @@ namespace LanPlayServer
             _ldnServer.Start();
             Console.WriteLine(" Done!");
 
-            _stopEvent.Wait();
+            StopEvent.Wait();
 
             _statsTimer.Close();
             _ldnServer.Dispose();
