@@ -11,13 +11,25 @@ __________                     __ .__                  .____         .___
 
 This server drives multiplayer "matchmaking" in Ryujinx's local wireless implementation. Players can create "networks" on the server, which can then be scanned and found by other players as if they were within that network's range. The server entirely manages the network information and player join/leave lifecycle for all games created.
 
+## Configuration
+
+This app can be configured using the following environment variables:
+
+| Name                  | Description                                                                    |   Default value   | Notes                                                                              |
+|:----------------------|--------------------------------------------------------------------------------|:-----------------:|------------------------------------------------------------------------------------|
+| `LDN_HOST`            | The address the server should be listening on.                                 |    `"0.0.0.0"`    |                                                                                    |
+| `LDN_PORT`            | The port the server should be using.                                           |      `30456`      |                                                                                    |
+| `LDN_GAMELIST_PATH`   | The path to the file containing a mapping of application ids and names.        | `"gamelist.json"` | This can be a relative or an absolute path.                                        |
+| `LDN_STATS_DIRECTORY` | The path to the directory where the statistic JSON files should be written to. |     `"stats"`     | This can be a relative or an absolute path.                                        |
+| `LDN_STATS_INTERVAL`  | The amount of time in minutes to wait before dumping statistics again.         |        `2`        | If the stats directory is located in RAM this can probably decreased even further. |
+
 ## Proxy
 
 Ryujinx uses an application layer proxy to simulate communications in a network, which directs traffic created by the C# socket to a proxy server, which routes and sends it to the relevant parties. By default, Ryujinx attempts to create a proxy server on the network owner's system, expose a port to the internet, and tell joiners to connect to it. If this does not work, the proxy is done through the master server itself, using a lot of the same mechanisms.
 
-## External Analytics API via Http Server
+## Analytics via JSON files
 
-- `ldn.ryujinx.org:API_PORT/api`<br />
+- `ldn.json`<br />
   This provide global analytics over the whole server.<br />
   E.g.:<br />
   ```json
@@ -33,7 +45,7 @@ Ryujinx uses an application layer proxy to simulate communications in a network,
   }
   ```
   
-- `ldn.ryujinx.org:API_PORT/api/public_games`<br />
+- `game.json`<br />
   This provide detailed analytics over all games. Only public games are available.<br />
   E.g.:<br />
   ```json
@@ -54,39 +66,3 @@ Ryujinx uses an application layer proxy to simulate communications in a network,
       }
   ]
   ```
-  
-- `ldn.ryujinx.org:API_PORT/api/public_games?titleid=TITLEID`<br />
-  This provide detailed analytics over a specific game, using the title id. Only public games are available.<br />
-  E.g.:<br />
-  ```json
-  [
-      {
-          "id": "d2d0244c2b4544d7a26cd051e0e993e9",
-          "player_count": 3,
-          "max_player_count": 4,
-          "game_name": "Puyo Puyo Tetris",
-          "title_id": "010053d0001be000",
-          "mode": "P2P",
-          "status": "Joinable",
-          "players": [
-              "Player1",
-              "Player2",
-              "Player3"
-          ]
-      }
-  ]
-  ```
-
-## Management
-
-(not implemented yet)
-
-The console is listening for commands while the server is running. You can do any of the following:
-
-- `!restart-ldn`<br /> 
-  Restart the LDN server.
-- `!restart-api`<br /> 
-  Restart the API server.
-- `!list`<br /> 
-  Lists all games and connected users. You will also be able to see passphrase games.
-- `!close` - Closes LDN and API servers.

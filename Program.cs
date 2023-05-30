@@ -15,7 +15,7 @@ namespace LanPlayServer
         private static readonly IPAddress Host = IPAddress.Parse(Environment.GetEnvironmentVariable("LDN_HOST") ?? "0.0.0.0");
         private static readonly int Port = int.Parse(Environment.GetEnvironmentVariable("LDN_PORT") ?? "30456");
         private static readonly string GamelistPath = Environment.GetEnvironmentVariable("LDN_GAMELIST_PATH") ?? "gamelist.json";
-        private static readonly string StatsDirectory = Environment.GetEnvironmentVariable("LDN_STATS_DIRECTORY");
+        private static readonly string StatsDirectory = Environment.GetEnvironmentVariable("LDN_STATS_DIRECTORY") ?? "stats";
         private static readonly int IntervalMinutes =
             int.Parse(Environment.GetEnvironmentVariable("LDN_STATS_INTERVAL") ?? "2");
 
