@@ -14,8 +14,8 @@ namespace LanPlayServer.Stats.Types
         private int _playerCount;
         private int _maxPlayerCount;
         private string _gameName;
-        private string _appId;
-        private string _appVersion;
+        private string _titleId;
+        private string _titleVersion;
         private string _mode;
         private string _status;
         private int _sceneId;
@@ -86,27 +86,27 @@ namespace LanPlayServer.Stats.Types
             }
         }
 
-        public string AppId
+        public string TitleId
         {
-            get => _appId;
+            get => _titleId;
             set
             {
-                if (_appId != value)
+                if (_titleId != value)
                 {
-                    _appId = value;
+                    _titleId = value;
                     NotifyPropertyChanged();
                 }
             }
         }
 
-        public string AppVersion
+        public string TitleVersion
         {
-            get => _appVersion;
+            get => _titleVersion;
             set
             {
-                if (_appVersion != value)
+                if (_titleVersion != value)
                 {
-                    _appVersion = value;
+                    _titleVersion = value;
                     NotifyPropertyChanged();
                 }
             }
@@ -183,8 +183,8 @@ namespace LanPlayServer.Stats.Types
             instance.PlayerCount = game.Info.Ldn.NodeCount;
             instance.MaxPlayerCount = game.Info.Ldn.NodeCountMax;
             instance.GameName = gameName;
-            instance.AppId = appId.ToString("x16");
-            instance.AppVersion = game.GameVersion;
+            instance.TitleId = appId.ToString("x16");
+            instance.TitleVersion = game.GameVersion;
             instance.Mode = game.IsP2P ? "P2P" : "Master Server Proxy";
             instance.Status = game.Info.Ldn.StationAcceptPolicy == 1 ? "Not Joinable" : "Joinable";
             instance.SceneId = game.Info.NetworkId.IntentId.SceneId;
