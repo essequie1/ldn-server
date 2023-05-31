@@ -1,22 +1,170 @@
 ﻿using LanPlayServer.Utils;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace LanPlayServer.Stats.Types
 {
-    public class GameAnalytics
+    public class GameAnalytics: INotifyPropertyChanged
     {
-        public string       Id             { get; set; }
-        public int          PlayerCount    { get; set; }
-        public int          MaxPlayerCount { get; set; }
-        public string       GameName       { get; set; }
-        public string       AppId          { get; set; }
-        public string       AppVersion     { get; set; }
-        public string       Mode           { get; set; }
-        public string       Status         { get; set; }
-        public int          SceneId        { get; set; }
-        public List<string> Players        { get; set; }
+        public event PropertyChangedEventHandler PropertyChanged;
 
-        public static GameAnalytics FromGame(HostedGame game)
+        private string _id;
+        private bool _isPublic;
+        private int _playerCount;
+        private int _maxPlayerCount;
+        private string _gameName;
+        private string _appId;
+        private string _appVersion;
+        private string _mode;
+        private string _status;
+        private int _sceneId;
+        private List<string> _players;
+
+        public string Id
+        {
+            get => _id;
+            set
+            {
+                if (_id != value)
+                {
+                    _id = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public bool IsPublic
+        {
+            get => _isPublic;
+            set
+            {
+                if (_isPublic != value)
+                {
+                    _isPublic = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public int PlayerCount
+        {
+            get => _playerCount;
+            set
+            {
+                if (_playerCount != value)
+                {
+                    _playerCount = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public int MaxPlayerCount
+        {
+            get => _maxPlayerCount;
+            set
+            {
+                if (_maxPlayerCount != value)
+                {
+                    _maxPlayerCount = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public string GameName
+        {
+            get => _gameName;
+            set
+            {
+                if (_gameName != value)
+                {
+                    _gameName = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public string AppId
+        {
+            get => _appId;
+            set
+            {
+                if (_appId != value)
+                {
+                    _appId = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public string AppVersion
+        {
+            get => _appVersion;
+            set
+            {
+                if (_appVersion != value)
+                {
+                    _appVersion = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public string Mode
+        {
+            get => _mode;
+            set
+            {
+                if (_mode != value)
+                {
+                    _mode = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public string Status
+        {
+            get => _status;
+            set
+            {
+                if (_status != value)
+                {
+                    _status = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public int SceneId
+        {
+            get => _sceneId;
+            set
+            {
+                if (_sceneId != value)
+                {
+                    _sceneId = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public List<string> Players
+        {
+            get => _players;
+            set
+            {
+                if (!ReferenceEquals(_players, value))
+                {
+                    _players = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        private static void FromGame(GameAnalytics instance, HostedGame game)
         {
             ulong appId = (ulong)game.Info.NetworkId.IntentId.LocalCommunicationId;
             string gameName = GameList.GetGameById(appId)?.Name ?? "Unknown";
@@ -30,19 +178,35 @@ namespace LanPlayServer.Stats.Types
                 players.Add(name);
             }
 
-            return new()
-            {
-                Id = game.Id,
-                PlayerCount = game.Info.Ldn.NodeCount,
-                MaxPlayerCount = game.Info.Ldn.NodeCountMax,
-                GameName = gameName,
-                AppId = appId.ToString("x16"),
-                AppVersion = game.GameVersion,
-                Mode = game.IsP2P ? "P2P" : "Master Server Proxy",
-                Status = game.Info.Ldn.StationAcceptPolicy == 1 ? "Joinable" : "Not Joinable",
-                SceneId = game.Info.NetworkId.IntentId.SceneId,
-                Players = players
-            };
+            instance.Id = game.Id;
+            instance.IsPublic = string.IsNullOrWhiteSpace(game.Passphrase);
+            instance.PlayerCount = game.Info.Ldn.NodeCount;
+            instance.MaxPlayerCount = game.Info.Ldn.NodeCountMax;
+            instance.GameName = gameName;
+            instance.AppId = appId.ToString("x16");
+            instance.AppVersion = game.GameVersion;
+            instance.Mode = game.IsP2P ? "P2P" : "Master Server Proxy";
+            instance.Status = game.Info.Ldn.StationAcceptPolicy == 1 ? "Not Joinable" : "Joinable";
+            instance.SceneId = game.Info.NetworkId.IntentId.SceneId;
+            instance.Players = players;
+        }
+
+        public void Update(HostedGame game)
+        {
+            FromGame(this, game);
+        }
+
+        public static GameAnalytics FromGame(HostedGame game)
+        {
+            GameAnalytics analytics = new();
+            FromGame(analytics, game);
+
+            return analytics;
+        }
+
+        private void NotifyPropertyChanged([CallerMemberName] string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

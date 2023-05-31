@@ -1,14 +1,128 @@
-﻿namespace LanPlayServer.Stats.Types
+﻿using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
+namespace LanPlayServer.Stats.Types
 {
-    public class LdnAnalytics
+    public class LdnAnalytics: INotifyPropertyChanged
     {
-        public int TotalGamesCount     { get; set; }
-        public int PrivateGamesCount   { get; set; }
-        public int PublicGamesCount    { get; set; }
-        public int InProgressCount     { get; set; }
-        public int MasterProxyCount    { get; set; }
-        public int TotalPlayersCount   { get; set; }
-        public int PrivatePlayersCount { get; set; }
-        public int PublicPlayersCount  { get; set; }
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private int _totalGameCount;
+        private int _privateGameCount;
+        private int _publicGameCount;
+        private int _inProgressCount;
+        private int _masterProxyCount;
+        private int _totalPlayerCount;
+        private int _privatePlayerCount;
+        private int _publicPlayerCount;
+
+        public int TotalGameCount
+        {
+            get => _totalGameCount;
+            set
+            {
+                if (_totalGameCount != value)
+                {
+                    _totalGameCount = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public int PrivateGamesCount
+        {
+            get => _privateGameCount;
+            set
+            {
+                if (_privateGameCount != value)
+                {
+                    _privateGameCount = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public int PublicGamesCount
+        {
+            get => _publicGameCount;
+            set
+            {
+                if (_publicGameCount != value)
+                {
+                    _publicGameCount = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public int InProgressCount
+        {
+            get => _inProgressCount;
+            set
+            {
+                if (_inProgressCount != value)
+                {
+                    _inProgressCount = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public int MasterProxyCount
+        {
+            get => _masterProxyCount;
+            set
+            {
+                if (_masterProxyCount != value)
+                {
+                    _masterProxyCount = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public int TotalPlayerCount
+        {
+            get => _totalPlayerCount;
+            set
+            {
+                if (_totalPlayerCount != value)
+                {
+                    _totalPlayerCount = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public int PrivatePlayerCount
+        {
+            get => _privatePlayerCount;
+            set
+            {
+                if (_privatePlayerCount != value)
+                {
+                    _privatePlayerCount = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public int PublicPlayerCount
+        {
+            get => _publicPlayerCount;
+            set
+            {
+                if (_publicPlayerCount != value)
+                {
+                    _publicPlayerCount = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        private void NotifyPropertyChanged([CallerMemberName] string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 }

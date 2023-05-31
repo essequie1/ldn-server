@@ -15,21 +15,21 @@ This server drives multiplayer "matchmaking" in Ryujinx's local wireless impleme
 
 This app can be configured using the following environment variables:
 
-| Name                  | Description                                                                    |   Default value   | Notes                                                                              |
-|:----------------------|--------------------------------------------------------------------------------|:-----------------:|------------------------------------------------------------------------------------|
-| `LDN_HOST`            | The address the server should be listening on.                                 |    `"0.0.0.0"`    |                                                                                    |
-| `LDN_PORT`            | The port the server should be using.                                           |      `30456`      |                                                                                    |
-| `LDN_GAMELIST_PATH`   | The path to the file containing a mapping of application ids and names.        | `"gamelist.json"` | This can be a relative or an absolute path.                                        |
-| `LDN_STATS_DIRECTORY` | The path to the directory where the statistic JSON files should be written to. |     `"stats"`     | This can be a relative or an absolute path.                                        |
-| `LDN_STATS_INTERVAL`  | The amount of time in minutes to wait before dumping statistics again.         |        `2`        | If the stats directory is located in RAM this can probably decreased even further. |
+| Name                | Description                                                             |   Default value   | Notes                                       |
+|:--------------------|-------------------------------------------------------------------------|:-----------------:|---------------------------------------------|
+| `LDN_HOST`          | The address the server should be listening on.                          |    `"0.0.0.0"`    |                                             |
+| `LDN_PORT`          | The port the server should be using.                                    |      `30456`      |                                             |
+| `LDN_GAMELIST_PATH` | The path to the file containing a mapping of application ids and names. | `"gamelist.json"` | This can be a relative or an absolute path. |
+| `LDN_REDIS_HOST`    | The address of the redis server to connect to.                          |   `"127.0.0.1"`   |                                             |
+| `LDN_REDIS_PORT`    | The port of the redis server to connect to.                             |      `6379`       |                                             |
 
 ## Proxy
 
 Ryujinx uses an application layer proxy to simulate communications in a network, which directs traffic created by the C# socket to a proxy server, which routes and sends it to the relevant parties. By default, Ryujinx attempts to create a proxy server on the network owner's system, expose a port to the internet, and tell joiners to connect to it. If this does not work, the proxy is done through the master server itself, using a lot of the same mechanisms.
 
-## Analytics via JSON files
+## Analytics via Redis (JSON objects)
 
-- `ldn.json`<br />
+- `ldn`<br />
   This provide global analytics over the whole server.<br />
   E.g.:<br />
   ```json
@@ -45,12 +45,12 @@ Ryujinx uses an application layer proxy to simulate communications in a network,
   }
   ```
   
-- `game.json`<br />
+- `games`<br />
   This provide detailed analytics over all games. Only public games are available.<br />
   E.g.:<br />
   ```json
-  [
-      {
+  {
+      "d2d0244c2b4544d7a26cd051e0e993e9": {
           "id": "d2d0244c2b4544d7a26cd051e0e993e9",
           "player_count": 3,
           "max_player_count": 4,
@@ -64,5 +64,5 @@ Ryujinx uses an application layer proxy to simulate communications in a network,
               "Player3"
           ]
       }
-  ]
+  }
   ```

@@ -5,7 +5,6 @@ using LanPlayServer.Utils;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.Timers;
 using Timer = System.Timers.Timer;
 
 namespace LanPlayServer
@@ -15,14 +14,12 @@ namespace LanPlayServer
         private static readonly IPAddress Host = IPAddress.Parse(Environment.GetEnvironmentVariable("LDN_HOST") ?? "0.0.0.0");
         private static readonly int Port = int.Parse(Environment.GetEnvironmentVariable("LDN_PORT") ?? "30456");
         private static readonly string GamelistPath = Environment.GetEnvironmentVariable("LDN_GAMELIST_PATH") ?? "gamelist.json";
-        private static readonly string StatsDirectory = Environment.GetEnvironmentVariable("LDN_STATS_DIRECTORY") ?? "stats";
-        private static readonly int IntervalMinutes =
-            int.Parse(Environment.GetEnvironmentVariable("LDN_STATS_INTERVAL") ?? "2");
+        private static readonly IPAddress RedisHost = IPAddress.Parse(Environment.GetEnvironmentVariable("LDN_REDIS_HOST") ?? "127.0.0.1");
+        private static readonly int RedisPort = int.Parse(Environment.GetEnvironmentVariable("LDN_REDIS_PORT") ?? "6379");
 
         private static readonly ManualResetEventSlim StopEvent = new();
 
         private static LdnServer _ldnServer;
-        private static Timer _statsTimer;
 
         static void Main()
         {
@@ -48,31 +45,20 @@ namespace LanPlayServer
             GameList.Initialize(File.ReadAllText(GamelistPath));
             Console.WriteLine(" Done!");
 
-            _statsTimer = new(TimeSpan.FromMinutes(IntervalMinutes))
-            {
-                AutoReset = true,
-            };
-
-            _statsTimer.Elapsed += DumpStats;
-            _statsTimer.Start();
-
             _ldnServer = new(Host, Port);
 
             Console.Write($"\tLdnServer (port: {Port}) starting...");
             _ldnServer.Start();
             Console.WriteLine(" Done!");
 
+            Console.Write($"\tRedis analytics starting...");
+            StatsDumper.Start(new IPEndPoint(RedisHost, RedisPort));
+            Console.WriteLine(" Done!");
+
             StopEvent.Wait();
 
-            _statsTimer.Close();
+            StatsDumper.Stop();
             _ldnServer.Dispose();
-        }
-
-        static void DumpStats(object sender, ElapsedEventArgs elapsedEventArgs)
-        {
-            Console.WriteLine($"[{elapsedEventArgs.SignalTime}] [StatsDumper] Writing json files...");
-            StatsDumper.WriteJsonFiles(_ldnServer.All(), StatsDirectory).Wait();
-            Console.WriteLine($"[{DateTime.Now}] [StatsDumper] Done.");
         }
     }
 }

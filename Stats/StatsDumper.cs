@@ -1,147 +1,83 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using LanPlayServer.Stats.Types;
-using LanPlayServer.Utils;
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using LanPlayServer.Stats.Types;
+using NRedisStack;
+using NRedisStack.RedisStackCommands;
+using StackExchange.Redis;
+using System.ComponentModel;
+using System.Net;
 
 namespace LanPlayServer.Stats
 {
     internal static class StatsDumper
     {
-        private static readonly LdnAnalyticsSerializerContext LdnAnalyticsJsonContext = new(JsonHelper.GetDefaultSerializerOptions());
+        private static ConnectionMultiplexer _redisConnection;
+        private static IDatabase _db;
 
-        private static readonly GameAnalyticsSerializerContext GameAnalyticsJsonContext = new(JsonHelper.GetDefaultSerializerOptions());
-
-        public static async Task WriteJsonFiles(IReadOnlyCollection<HostedGame> games, string outputDirectory, CancellationToken cancellationToken = default)
+        public static void Start(EndPoint redisEndpoint)
         {
-            if (string.IsNullOrWhiteSpace(outputDirectory))
+            _redisConnection = ConnectionMultiplexer.Connect(new ConfigurationOptions()
+            {
+                ClientName = "LdnServer",
+                EndPoints = new()
+                {
+                    redisEndpoint
+                }
+            });
+
+            _db = _redisConnection.GetDatabase();
+
+            IJsonCommands json = _db.JSON();
+
+            json.Set("ldn", "$", new LdnAnalytics());
+            json.Set("games", "$", new {});
+
+            Statistics.GameAnalyticsChanged += OnGameAnalyticsChanged;
+            Statistics.LdnAnalyticsChanged += OnLdnAnalyticsPropertyChanged;
+        }
+
+        public static void Stop()
+        {
+            Statistics.GameAnalyticsChanged -= OnGameAnalyticsChanged;
+            Statistics.LdnAnalyticsChanged -= OnLdnAnalyticsPropertyChanged;
+
+            _redisConnection.Close();
+            _redisConnection.Dispose();
+        }
+
+        private static void OnLdnAnalyticsPropertyChanged(LdnAnalytics analytics)
+        {
+            IJsonCommands json = _db.JSON();
+
+            json.Set("ldn", "$", analytics);
+        }
+
+        private static void OnGameAnalyticsChanged(GameAnalytics analytics, bool created)
+        {
+            IJsonCommands json = _db.JSON();
+
+            if (created)
+            {
+                json.Set("games", $"$.{analytics.Id}", analytics);
+                analytics.PropertyChanged += OnGameAnalyticsPropertyChanged;
+            }
+            else
+            {
+                analytics.PropertyChanged -= OnGameAnalyticsPropertyChanged;
+                json.Del("games", $"$.{analytics.Id}");
+            }
+        }
+
+        private static void OnGameAnalyticsPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            GameAnalytics analytics = sender as GameAnalytics;
+            IJsonCommands json = _db.JSON();
+
+            if (analytics == null)
             {
                 return;
             }
 
-            if (!Directory.Exists(outputDirectory))
-            {
-                Directory.CreateDirectory(outputDirectory);
-            }
-
-            foreach (StatsType statsType in Enum.GetValuesAsUnderlyingType<StatsType>())
-            {
-                string filePath = Path.Combine(outputDirectory, $"{statsType.ToString().ToLower()}.json");
-                await File.WriteAllTextAsync(filePath, GetJsonArray(games, statsType), cancellationToken);
-            }
-        }
-
-        private static Dictionary<string, List<HostedGame>> GetGamesByPassphrase(IEnumerable<HostedGame> games)
-        {
-            // All hosted games.
-            Dictionary<string, List<HostedGame>> gamesByPassphrase = new();
-
-            foreach (HostedGame game in games)
-            {
-                if (game.TestReadLock())
-                {
-                    continue;
-                }
-
-                string passphrase = game.Passphrase ?? "";
-
-                if (!gamesByPassphrase.TryGetValue(passphrase, out List<HostedGame> target))
-                {
-                    target = new List<HostedGame>();
-
-                    gamesByPassphrase.Add(passphrase, target);
-                }
-
-                target.Add(game);
-            }
-
-            return gamesByPassphrase;
-        }
-
-        public static string GetJsonArray(IEnumerable<HostedGame> games, StatsType type, string gameAppId = "")
-        {
-            var gamesByPassphrase = GetGamesByPassphrase(games);
-
-            int totalGameCount     = 0;
-            int totalPlayerCount   = 0;
-            int privateGameCount   = 0;
-            int privatePlayerCount = 0;
-            int masterProxyCount   = 0;
-            int inProgressCount    = 0;
-
-            List<GameAnalytics> gameAnalytics = new();
-
-            foreach ((string passphrase, List<HostedGame> group) in gamesByPassphrase)
-            {
-                bool isGamePublic = string.IsNullOrWhiteSpace(passphrase);
-
-                foreach (HostedGame game in group)
-                {
-                    if (game.Info.Ldn.NodeCount == 0)
-                    {
-                        continue;
-                    }
-
-                    GameAnalytics analytics = GameAnalytics.FromGame(game);
-
-                    if (!game.IsP2P)
-                    {
-                        masterProxyCount++;
-                    }
-
-                    totalGameCount++;
-
-                    if (!isGamePublic)
-                    {
-                        privateGameCount++;
-                        privatePlayerCount += game.Info.Ldn.NodeCount;
-                    }
-
-                    if (game.Info.Ldn.StationAcceptPolicy == 1)
-                    {
-                        inProgressCount++;
-                    }
-
-                    totalPlayerCount += game.Info.Ldn.NodeCount;
-
-                    if (isGamePublic)
-                    {
-                        gameAnalytics.Add(analytics);
-                    }
-                }
-            }
-
-            switch (type)
-            {
-                case StatsType.Game:
-                    LdnAnalytics ldnAnalytics = new()
-                    {
-                        TotalGamesCount     = totalGameCount,
-                        PrivateGamesCount   = privateGameCount,
-                        PublicGamesCount    = totalGameCount - privateGameCount,
-                        InProgressCount     = inProgressCount,
-                        MasterProxyCount    = masterProxyCount,
-                        TotalPlayersCount   = totalPlayerCount,
-                        PrivatePlayersCount = privatePlayerCount,
-                        PublicPlayersCount  = totalPlayerCount - privatePlayerCount
-                    };
-
-                    return JsonHelper.Serialize(ldnAnalytics, LdnAnalyticsJsonContext.LdnAnalytics);
-
-                case StatsType.Ldn:
-                    return JsonHelper.Serialize(
-                        string.IsNullOrWhiteSpace(gameAppId) ?
-                            gameAnalytics :
-                            gameAnalytics.Where(game => String.Equals(game.AppId, gameAppId, StringComparison.InvariantCultureIgnoreCase)).ToList(),
-                        GameAnalyticsJsonContext.ListGameAnalytics
-                        );
-
-                default:
-                    throw new NotImplementedException();
-            }
+            // This could be optimized to only update the changed property.
+            json.Set("games", $"$.{analytics.Id}", analytics);
         }
     }
 }

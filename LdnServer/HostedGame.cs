@@ -4,8 +4,10 @@ using LanPlayServer.Utils;
 using Ryujinx.HLE.HOS.Services.Ldn.Types;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,17 +35,17 @@ namespace LanPlayServer
         Close
     }
 
-    public class HostedGame
+    public class HostedGame : INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler PropertyChanged;
+
         private const uint NetworkBaseAddress = 0x0a720000; // 10.114.0.0 (our "virtual network")
         private const uint NetworkSubnetMask  = 0xffff0000; // 255.255.0.0
 
-        private ReaderWriterLockSlim _lock;
+        private readonly ReaderWriterLockSlim _lock;
         private GameLockReason _lockReason;
-        private List<LdnSession> _players;
-        private VirtualDhcp      _dhcp;
-
-        private RyuLdnProtocol _protocol;
+        private readonly List<LdnSession> _players;
+        private readonly VirtualDhcp      _dhcp;
 
         private bool                _closed;
         private ExternalProxyConfig _externalConfig;
@@ -85,6 +87,8 @@ namespace LanPlayServer
         }
 
         private string _gameVersion;
+        private bool _isP2P;
+
         public string GameVersion
         {
             get
@@ -96,6 +100,14 @@ namespace LanPlayServer
                 _lock.ExitReadLock();
 
                 return result;
+            }
+            private set
+            {
+                if (_gameVersion != value)
+                {
+                    _gameVersion = value;
+                    NotifyPropertyChanged();
+                }
             }
         }
 
@@ -115,7 +127,18 @@ namespace LanPlayServer
             }
         }
 
-        public bool IsP2P { get; private set; }
+        public bool IsP2P
+        {
+            get => _isP2P;
+            private set
+            {
+                if (_isP2P != value)
+                {
+                    _isP2P = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
 
         public HostedGame(string id, NetworkInfo info, AddressList dhcpConfig)
         {
@@ -124,8 +147,6 @@ namespace LanPlayServer
             _lock    = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
             _players = new List<LdnSession>();
             _dhcp    = new VirtualDhcp(NetworkBaseAddress, NetworkSubnetMask, dhcpConfig);
-
-            _protocol = new RyuLdnProtocol(false);
 
             UpdateNetworkInfo(info);
         }
@@ -162,6 +183,8 @@ namespace LanPlayServer
 
             _info = info;
 
+            NotifyPropertyChanged(nameof(Info));
+
             ExitLock();
         }
 
@@ -184,7 +207,7 @@ namespace LanPlayServer
                 Owner = session;
                 _passphrase = session.Passphrase;
 
-                _gameVersion = Encoding.UTF8.GetString(request.GameVersion.AsSpan().ToArray(), 0, request.GameVersion.Length).Trim('\0');
+                GameVersion = Encoding.UTF8.GetString(request.GameVersion.AsSpan().ToArray(), 0, request.GameVersion.Length).Trim('\0');
 
                 if (request.ExternalProxyPort != 0)
                 {
@@ -292,6 +315,7 @@ namespace LanPlayServer
             session.CurrentGame = this;
 
             _players.Add(session);
+            NotifyPropertyChanged(nameof(Players));
 
             _lockReason = GameLockReason.ConnectFinal;
             session.SendAsync(RyuLdnProtocol.Encode(PacketId.Connected, _info));
@@ -521,6 +545,7 @@ namespace LanPlayServer
             try
             {
                 _players.Remove(session);
+                NotifyPropertyChanged(nameof(Players));
 
                 session.CurrentGame = null;
 
@@ -603,7 +628,7 @@ namespace LanPlayServer
             {
                 // Can't upgrade the lock, try close in the background.
 
-                Task.Run(() => Close());
+                Task.Run(Close);
             }
             else
             {
@@ -617,6 +642,11 @@ namespace LanPlayServer
 
                 ExitLock();
             }
+        }
+
+        private void NotifyPropertyChanged([CallerMemberName] string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

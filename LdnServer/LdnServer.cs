@@ -1,4 +1,6 @@
-﻿using NetCoreServer;
+﻿using LanPlayServer.Stats;
+using LanPlayServer.Stats.Types;
+using NetCoreServer;
 using Ryujinx.HLE.HOS.Services.Ldn.Types;
 using System;
 using System.Collections.Concurrent;
@@ -13,9 +15,9 @@ namespace LanPlayServer
 {
     public class LdnServer : TcpServer
     {
-        public static readonly int InactivityPingFrequency = 10000;
+        public const int InactivityPingFrequency = 10000;
 
-        private ConcurrentDictionary<string, HostedGame> HostedGames = new();
+        private readonly ConcurrentDictionary<string, HostedGame> _hostedGames = new();
         public MacAddressMemory MacAddresses { get; } = new();
         public bool UseProxy => true;
 
@@ -34,11 +36,13 @@ namespace LanPlayServer
             HostedGame game = new(id, info, dhcpConfig);
             bool idTaken = false;
 
-            HostedGames.AddOrUpdate(id, game, (id, oldGame) =>
+            _hostedGames.AddOrUpdate(id, game, (id, oldGame) =>
             {
                 if (oldGame.OwnerId == oldOwnerID)
                 {
                     oldGame.Close();
+
+                    Statistics.RemoveGameAnalytics(oldGame);
 
                     return game;
                 }
@@ -57,6 +61,8 @@ namespace LanPlayServer
                 return null;
             }
 
+            Statistics.AddGameAnalytics(game);
+
             return game;
         }
 
@@ -64,19 +70,19 @@ namespace LanPlayServer
         {
             id = id.ToLower();
 
-            HostedGames.TryGetValue(id, out HostedGame result);
+            _hostedGames.TryGetValue(id, out HostedGame result);
 
             return result;
         }
 
         public HostedGame[] All()
         {
-            return HostedGames.Values.ToArray();
+            return _hostedGames.Values.ToArray();
         }
 
         public int Scan(ref NetworkInfo[] info, ScanFilter filter, string passphrase, HostedGame exclude)
         {
-            KeyValuePair<string, HostedGame>[] all = HostedGames.ToArray();
+            KeyValuePair<string, HostedGame>[] all = _hostedGames.ToArray();
 
             int results = 0;
 
@@ -86,7 +92,7 @@ namespace LanPlayServer
 
                 if (game.TestReadLock())
                 {
-                    HostedGames.Remove(game.Id, out HostedGame removed);
+                    _hostedGames.Remove(game.Id, out HostedGame removed);
                     continue;
                 }
 
@@ -166,8 +172,13 @@ namespace LanPlayServer
 
         public void CloseGame(string id)
         {
-            HostedGames.Remove(id.ToLower(), out HostedGame removed);
+            _hostedGames.Remove(id.ToLower(), out HostedGame removed);
             removed?.Close();
+
+            if (removed != null)
+            {
+                Statistics.RemoveGameAnalytics(removed);
+            }
         }
 
         protected override TcpSession CreateSession()
