@@ -91,8 +91,8 @@ namespace LanPlayServer.Stats
             }
 
             LdnAnalytics.TotalGameCount      = totalGameCount;
-            LdnAnalytics.PrivateGamesCount   = privateGameCount;
-            LdnAnalytics.PublicGamesCount    = totalGameCount - privateGameCount;
+            LdnAnalytics.PrivateGameCount    = privateGameCount;
+            LdnAnalytics.PublicGameCount     = totalGameCount - privateGameCount;
             LdnAnalytics.InProgressCount     = inProgressCount;
             LdnAnalytics.MasterProxyCount    = masterProxyCount;
             LdnAnalytics.TotalPlayerCount    = totalPlayerCount;

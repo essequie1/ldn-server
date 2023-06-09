@@ -1,10 +1,13 @@
-﻿using System.ComponentModel;
+﻿using LanPlayServer.Utils;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace LanPlayServer.Stats.Types
 {
     public class LdnAnalytics: INotifyPropertyChanged
     {
+        private static readonly LdnAnalyticsSerializerContext SerializerContext = new(JsonHelper.GetDefaultSerializerOptions(false));
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         private int _totalGameCount;
@@ -29,7 +32,7 @@ namespace LanPlayServer.Stats.Types
             }
         }
 
-        public int PrivateGamesCount
+        public int PrivateGameCount
         {
             get => _privateGameCount;
             set
@@ -42,7 +45,7 @@ namespace LanPlayServer.Stats.Types
             }
         }
 
-        public int PublicGamesCount
+        public int PublicGameCount
         {
             get => _publicGameCount;
             set
@@ -118,6 +121,11 @@ namespace LanPlayServer.Stats.Types
                     NotifyPropertyChanged();
                 }
             }
+        }
+
+        public string ToJson()
+        {
+            return JsonHelper.Serialize(this, SerializerContext.LdnAnalytics);
         }
 
         private void NotifyPropertyChanged([CallerMemberName] string propertyName = "")

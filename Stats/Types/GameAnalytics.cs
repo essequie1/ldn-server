@@ -7,6 +7,8 @@ namespace LanPlayServer.Stats.Types
 {
     public class GameAnalytics: INotifyPropertyChanged
     {
+        private static readonly GameAnalyticsSerializerContext SerializerContext = new(JsonHelper.GetDefaultSerializerOptions(false));
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         private string _id;
@@ -194,6 +196,11 @@ namespace LanPlayServer.Stats.Types
         public void Update(HostedGame game)
         {
             FromGame(this, game);
+        }
+
+        public string ToJson()
+        {
+            return JsonHelper.Serialize(this, SerializerContext.GameAnalytics);
         }
 
         public static GameAnalytics FromGame(HostedGame game)

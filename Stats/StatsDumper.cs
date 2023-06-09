@@ -2,6 +2,7 @@
 using NRedisStack;
 using NRedisStack.RedisStackCommands;
 using StackExchange.Redis;
+using System;
 using System.ComponentModel;
 using System.Net;
 
@@ -27,7 +28,9 @@ namespace LanPlayServer.Stats
 
             IJsonCommands json = _db.JSON();
 
-            json.Set("ldn", "$", new LdnAnalytics());
+            Console.WriteLine("Creating empty json objects for redis...");
+
+            json.Set("ldn", "$", new LdnAnalytics().ToJson());
             json.Set("games", "$", new {});
 
             Statistics.GameAnalyticsChanged += OnGameAnalyticsChanged;
@@ -46,17 +49,19 @@ namespace LanPlayServer.Stats
         private static void OnLdnAnalyticsPropertyChanged(LdnAnalytics analytics)
         {
             IJsonCommands json = _db.JSON();
+            string analyticsJson = analytics.ToJson();
 
-            json.Set("ldn", "$", analytics);
+            json.Set("ldn", "$", analyticsJson);
         }
 
         private static void OnGameAnalyticsChanged(GameAnalytics analytics, bool created)
         {
             IJsonCommands json = _db.JSON();
+            string analyticsJson = analytics.ToJson();
 
             if (created)
             {
-                json.Set("games", $"$.{analytics.Id}", analytics);
+                json.Set("games", $"$.{analytics.Id}", analyticsJson);
                 analytics.PropertyChanged += OnGameAnalyticsPropertyChanged;
             }
             else
@@ -76,8 +81,10 @@ namespace LanPlayServer.Stats
                 return;
             }
 
+            string analyticsJson = analytics.ToJson();
+
             // This could be optimized to only update the changed property.
-            json.Set("games", $"$.{analytics.Id}", analytics);
+            json.Set("games", $"$.{analytics.Id}", analyticsJson);
         }
     }
 }
