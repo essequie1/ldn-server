@@ -1,8 +1,28 @@
 version: '3'
 
 services:
+  redis:
+    image: redis/redis-stack-server
+    restart: always
+
   ldn-server:
     build: ./
     restart: always
+    environment:
+      LDN_HOST: 0.0.0.0
+      LDN_PORT: 30456
+      LDN_REDIS_HOST: redis
+      LDN_REDIS_PORT: 6379
     ports:
       - "30456:30456"
+
+  website:
+    # NOTE: Make sure the website repo is cloned to this location and up to date
+    build: ../ryujinx-ldn-website/
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 8080
+      REDIS_URL: "redis://redis:6379"
+    ports:
+      - "8080:8080"
