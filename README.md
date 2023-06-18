@@ -15,13 +15,14 @@ This server drives multiplayer "matchmaking" in Ryujinx's local wireless impleme
 
 This app can be configured using the following environment variables:
 
-| Name                | Description                                                             |   Default value   | Notes                                       |
-|:--------------------|-------------------------------------------------------------------------|:-----------------:|---------------------------------------------|
-| `LDN_HOST`          | The address the server should be listening on.                          |    `"0.0.0.0"`    |                                             |
-| `LDN_PORT`          | The port the server should be using.                                    |      `30456`      |                                             |
-| `LDN_GAMELIST_PATH` | The path to the file containing a mapping of application ids and names. | `"gamelist.json"` | This can be a relative or an absolute path. |
-| `LDN_REDIS_HOST`    | The address of the redis server to connect to.                          |   `"127.0.0.1"`   |                                             |
-| `LDN_REDIS_PORT`    | The port of the redis server to connect to.                             |      `6379`       |                                             |
+| Name                | Description                                                             |   Default value   | Notes                                                                                   |
+|:--------------------|-------------------------------------------------------------------------|:-----------------:|-----------------------------------------------------------------------------------------|
+| `LDN_HOST`          | The address the server should be listening on.                          |    `"0.0.0.0"`    |                                                                                         |
+| `LDN_PORT`          | The port the server should be using.                                    |      `30456`      |                                                                                         |
+| `LDN_GAMELIST_PATH` | The path to the file containing a mapping of application ids and names. | `"gamelist.json"` | This can be a relative or an absolute path.                                             |
+| `LDN_REDIS_SOCKET`  | The path to the unix socket of the redis server to connect to.          |       `""`        | If this is variable is not empty `LDN_REDIS_HOST` and `LDN_REDIS_PORT` will be ignored. |
+| `LDN_REDIS_HOST`    | The address of the redis server to connect to.                          |   `"127.0.0.1"`   |                                                                                         |
+| `LDN_REDIS_PORT`    | The port of the redis server to connect to.                             |      `6379`       |                                                                                         |
 
 ## Proxy
 

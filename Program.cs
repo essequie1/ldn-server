@@ -3,6 +3,7 @@ using System.Net;
 using LanPlayServer.Stats;
 using LanPlayServer.Utils;
 using System.IO;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -13,6 +14,7 @@ namespace LanPlayServer
         private static readonly IPAddress Host = IPAddress.Parse(Environment.GetEnvironmentVariable("LDN_HOST") ?? "0.0.0.0");
         private static readonly int Port = int.Parse(Environment.GetEnvironmentVariable("LDN_PORT") ?? "30456");
         private static readonly string GamelistPath = Environment.GetEnvironmentVariable("LDN_GAMELIST_PATH") ?? "gamelist.json";
+        private static readonly string RedisSocketPath = Environment.GetEnvironmentVariable("LDN_REDIS_SOCKET") ?? "";
         private static readonly string RedisHost = Environment.GetEnvironmentVariable("LDN_REDIS_HOST") ?? "127.0.0.1";
         private static readonly int RedisPort = int.Parse(Environment.GetEnvironmentVariable("LDN_REDIS_PORT") ?? "6379");
 
@@ -50,13 +52,25 @@ namespace LanPlayServer
             _ldnServer.Start();
             Console.WriteLine(" Done!");
 
-            if (!IPAddress.TryParse(RedisHost, out IPAddress ipAddress))
+            bool usingUnixSocket = !string.IsNullOrWhiteSpace(RedisSocketPath);
+            EndPoint redisEndpoint;
+
+            if (usingUnixSocket)
             {
-                ipAddress = Dns.GetHostEntry(RedisHost!).AddressList[0];
+                redisEndpoint = new UnixDomainSocketEndPoint(RedisSocketPath);
+            }
+            else
+            {
+                if (!IPAddress.TryParse(RedisHost, out IPAddress ipAddress))
+                {
+                    ipAddress = Dns.GetHostEntry(RedisHost!).AddressList[0];
+                }
+
+                redisEndpoint = new IPEndPoint(ipAddress, RedisPort);
             }
 
-            Console.Write("\tRedis analytics starting...");
-            StatsDumper.Start(new IPEndPoint(ipAddress, RedisPort));
+            Console.Write($"\tRedis analytics starting (using unix socket: {usingUnixSocket})...");
+            StatsDumper.Start(redisEndpoint);
             Console.WriteLine(" Done!");
 
             StopEvent.Wait();
