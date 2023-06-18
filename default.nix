@@ -16,7 +16,7 @@ buildDotnetModule rec {
   dotnet-runtime = dotnetCorePackages.runtime_7_0;
   selfContainedBuild = false;
 
-  dotnetFlags = [  ];
+  dotnetFlags = [ "-p:PublishAOT=false" ];
 
   executables = [ "LanPlayServer" ];
 }
