@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace LanPlayServer.Utils
 {
@@ -67,6 +68,24 @@ namespace LanPlayServer.Utils
             }
 
             return Encoding.UTF8.GetString(ms.ToArray());
+        }
+
+        public static string CleanInput(this string input, int maxLength = -1, string extraAllowedChars = "")
+        {
+            string result = input;
+
+            if (maxLength != -1 && input.Length > maxLength)
+            {
+                result = result[..maxLength];
+            }
+
+            try {
+                return Regex.Replace(result, $@"[^\w-_{extraAllowedChars}]", "",
+                    RegexOptions.IgnoreCase, TimeSpan.FromSeconds(2));
+            }
+            catch (RegexMatchTimeoutException) {
+                return string.Empty;
+            }
         }
     }
 }

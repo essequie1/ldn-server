@@ -176,6 +176,9 @@ namespace LanPlayServer.Stats.Types
             {
                 string name = StringUtils.ReadUtf8String(player.UserName.AsSpan());
 
+                // Sanitize user input
+                name = name.CleanInput(32);
+
                 // Would like to add more player information here, but that needs a bit more work.
                 players.Add(name);
             }
@@ -184,9 +187,9 @@ namespace LanPlayServer.Stats.Types
             instance.IsPublic = string.IsNullOrWhiteSpace(game.Passphrase);
             instance.PlayerCount = game.Info.Ldn.NodeCount;
             instance.MaxPlayerCount = game.Info.Ldn.NodeCountMax;
-            instance.GameName = gameName;
-            instance.TitleId = appId.ToString("x16");
-            instance.TitleVersion = game.GameVersion;
+            instance.GameName = gameName.CleanInput(extraAllowedChars: @"™/:\.\+',\"" ~\?\!");
+            instance.TitleId = appId.ToString("X16");
+            instance.TitleVersion = game.GameVersion.CleanInput(16, @"\.");
             instance.Mode = game.IsP2P ? "P2P" : "Master Server Proxy";
             instance.Status = game.Info.Ldn.StationAcceptPolicy == 1 ? "Not Joinable" : "Joinable";
             instance.SceneId = game.Info.NetworkId.IntentId.SceneId;
