@@ -81,6 +81,12 @@ namespace LanPlayServer.Stats
                 return;
             }
 
+            if (analytics.PlayerCount == 0)
+            {
+                json.Del("games", $"$.{analytics.Id}");
+                return;
+            }
+
             string analyticsJson = analytics.ToJson();
 
             // This could be optimized to only update the changed property.

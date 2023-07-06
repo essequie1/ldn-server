@@ -32,7 +32,7 @@ namespace LanPlayServer.Stats
         {
             HostedGame game = sender as HostedGame;
 
-            if (game == null)
+            if (game == null || !Games.ContainsKey(game.Id))
             {
                 return;
             }
