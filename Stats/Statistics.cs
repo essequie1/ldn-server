@@ -1,5 +1,6 @@
 using LanPlayServer.Stats.Types;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel;
@@ -9,7 +10,7 @@ namespace LanPlayServer.Stats
 {
     public static class Statistics
     {
-        private static readonly Dictionary<string, GameAnalytics> Games = new();
+        private static readonly ConcurrentDictionary<string, GameAnalytics> Games = new();
         private static readonly LdnAnalytics LdnAnalytics = new();
 
         public static event Action<GameAnalytics, bool> GameAnalyticsChanged;
