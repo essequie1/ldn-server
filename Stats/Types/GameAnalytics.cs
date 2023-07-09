@@ -187,7 +187,8 @@ namespace LanPlayServer.Stats.Types
             instance.IsPublic = string.IsNullOrWhiteSpace(game.Passphrase);
             instance.PlayerCount = game.Info.Ldn.NodeCount;
             instance.MaxPlayerCount = game.Info.Ldn.NodeCountMax;
-            instance.GameName = gameName.CleanInput(extraAllowedChars: @"™/:\.\+',\"" ~\?\!");
+            // We can mostly trust these names, but just in case remove <>
+            instance.GameName = gameName.Trim().Replace("<", "_").Replace(">", "_");
             instance.TitleId = appId.ToString("X16");
             instance.TitleVersion = game.GameVersion.CleanInput(16, @"\.");
             instance.Mode = game.IsP2P ? "P2P" : "Master Server Proxy";
