@@ -72,6 +72,11 @@ namespace LanPlayServer.Utils
 
         public static string CleanInput(this string input, int maxLength = -1, string extraAllowedChars = "")
         {
+            if (input == null)
+            {
+                return null;
+            }
+
             string result = input;
 
             if (maxLength != -1 && input.Length > maxLength)
