@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "ldn-healthcheck"
+version = "0.1.0"
+description = ""
+authors = [ "TSR Berry <20988865+TSRBerry@users.noreply.github.com>" ]
+readme = "README.md"
+
+
+[tool.poetry.dependencies]
+python = "^3.11"
+discord-webhook = "^1.1.0"
+requests = "^2.31.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.7.0"
+
+
+[tool.poetry.scripts]
+ldn_healthcheck = "ldn_healthcheck.__main__:main"
+
+
+[build-system]
+requires = [ "poetry-core" ]
+build-backend = "poetry.core.masonry.api"
