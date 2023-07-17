@@ -7,6 +7,7 @@ import logging
 import os
 
 import requests
+from dbus import DBusException
 from discord_webhook import DiscordEmbed, DiscordWebhook
 
 from .ryuldn.packets.create_access_point import CreateAccessPointPacket
@@ -127,7 +128,14 @@ def restart_service():
     message = "<@&703902272756645948> The LDN server stopped working correctly.\nRestarting..."
     webhook.set_content(message)
     webhook.execute(True)
-    manager.RestartUnit(service_name, "fail")
+    try:
+        manager.RestartUnit(service_name, "fail")
+    except DBusException as ex:
+        logging.exception("Could not restart the LDN service.")
+        webhook.set_content(f"{message} Error.\n```{ex}\n```")
+        webhook.edit()
+        exit(1)
+
     webhook.set_content(f"{message} Done.")
     webhook.edit()
 
