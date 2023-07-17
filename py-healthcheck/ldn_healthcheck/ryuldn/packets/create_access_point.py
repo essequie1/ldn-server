@@ -90,7 +90,7 @@ class CreateAccessPointPacket(Packet):
 
     def encode(self) -> bytes:
         result = bytearray(len(self))
-        result[0:len(self._Packet__header)] = self._Packet__header.encode()
+        result[0 : len(self._Packet__header)] = self._Packet__header.encode()
         self.__struct.pack_into(
             result,
             len(self._Packet__header),

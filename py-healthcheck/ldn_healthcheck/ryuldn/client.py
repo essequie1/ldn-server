@@ -36,7 +36,12 @@ class RyujinxLdnClient:
         self.socket.sendall(result)
 
     def receive(self) -> tuple[Optional[Packet], bytes]:
-        header_data = self.socket.recv(len(PacketHeader()))
+        try:
+            header_data = self.socket.recv(len(PacketHeader()))
+        except TimeoutError:
+            logging.exception("Did not receive any data in time.")
+            return None, b""
+
         if len(header_data) == 0:
             logging.error("No data received. Is the socket broken?")
             return None, b""
@@ -45,7 +50,12 @@ class RyujinxLdnClient:
         chunks = []
         bytes_received = 0
         while bytes_received < header.data_size:
-            chunk = self.socket.recv(min(header.data_size - bytes_received, 2048))
+            try:
+                chunk = self.socket.recv(min(header.data_size - bytes_received, 2048))
+            except TimeoutError:
+                logging.exception("Did not receive any data in time.")
+                return None, b""
+
             if len(chunk) == 0:
                 logging.error("No chunk data received. Is the socket broken?")
                 return None, b""

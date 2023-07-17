@@ -71,7 +71,10 @@ def send_init_embed():
     try:
         api_response = requests.get(f"https://{HOST}/api")
         api_response.raise_for_status()
-        EMBED.set_description("Current status:\n" f"```json\n{json.dumps(api_response.json(), indent=2)}\n```")
+        EMBED.set_description(
+            "Current status:\n"
+            f"```json\n{json.dumps(api_response.json(), indent=2)}\n```"
+        )
     except requests.RequestException as e:
         logging.exception("Could not receive stats from API.")
         EMBED.set_description("Unable to query API for statistics.\n" f"```\n{e}\n```")
@@ -188,7 +191,7 @@ def main():
     logging.info("Waiting for response...")
     init_response, _ = client.receive()
     if init_response is None:
-        logging.error("Failed to receive valid response.")
+        logging.error("Failed to receive a valid response.")
         send_wip_embed(1, TestStatus.Failed)
         send_wip_embed(2, TestStatus.Cancelled)
         send_done_embed(False)
