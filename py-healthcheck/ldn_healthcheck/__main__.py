@@ -20,9 +20,11 @@ NAME = "RyuDoctor"
 HOST = "ldn.ryujinx.org"
 PORT = 30456
 
+SERVER_RESTART_PING_ROLE = "1130585039890042911"
+
 ALLOWED_MENTIONS = {
     "users": ["113928430583545863", "330753027071934486"],
-    "roles": ["703902272756645948"],
+    "roles": [SERVER_RESTART_PING_ROLE],
 }
 
 EMBED = DiscordEmbed("LDN server status check")
@@ -125,7 +127,8 @@ def send_done_embed(success: bool):
 
 
 def restart_service():
-    message = "<@&703902272756645948> The LDN server stopped working correctly.\nRestarting..."
+    message = f":warning: <@&{SERVER_RESTART_PING_ROLE}> :warning:\n" \
+              "The LDN server stopped working correctly.\nRestarting..."
     webhook.set_content(message)
     webhook.execute(True)
     try:
