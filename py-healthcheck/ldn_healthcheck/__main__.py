@@ -69,7 +69,8 @@ class TestStatus(IntEnum):
     Passed = 4
 
 
-def send_init_embed():
+def send_init_embed() -> bool:
+    api_success = False
     EMBED.color = 0x4D9DF2
     try:
         api_response = requests.get(f"https://{HOST}/api")
@@ -78,12 +79,14 @@ def send_init_embed():
             "Current status:\n"
             f"```json\n{json.dumps(api_response.json(), indent=2)}\n```"
         )
+        api_success = True
     except requests.RequestException as e:
         logging.exception("Could not receive stats from API.")
         EMBED.set_description("Unable to query API for statistics.\n" f"```\n{e}\n```")
     EMBED.set_footer(text="Initializing...")
     webhook.add_embed(EMBED)
     webhook.execute(True)
+    return api_success
 
 
 def send_wip_embed(test_index: int, status: TestStatus, exception: Exception = None):
@@ -124,6 +127,16 @@ def send_done_embed(success: bool):
     webhook.add_embed(EMBED)
     webhook.edit()
     webhook.remove_embeds()
+
+
+def send_api_message(api_success: bool):
+    if api_success:
+        return
+    message = f":space_invader: <@&{SERVER_RESTART_PING_ROLE}> :space_invader:\n" \
+              "The LDN website stopped working correctly.\n" \
+              "Please take a look at the error above."
+    webhook.set_content(message)
+    webhook.execute(True)
 
 
 def restart_service():
@@ -180,7 +193,7 @@ def main():
         allowed_mentions=ALLOWED_MENTIONS,
     )
 
-    send_init_embed()
+    api_success = send_init_embed()
 
     logging.info("Trying to connect to LDN server...")
     send_wip_embed(0, TestStatus.Running)
@@ -192,6 +205,7 @@ def main():
         send_wip_embed(1, TestStatus.Cancelled)
         send_wip_embed(2, TestStatus.Cancelled)
         send_done_embed(False)
+        send_api_message(api_success)
         restart_service()
         exit(0)
 
@@ -206,6 +220,7 @@ def main():
         send_wip_embed(1, TestStatus.Failed)
         send_wip_embed(2, TestStatus.Cancelled)
         send_done_embed(False)
+        send_api_message(api_success)
         restart_service()
         exit(0)
 
@@ -220,6 +235,7 @@ def main():
     logging.info("Disconnecting...")
     client.disconnect()
     send_done_embed(True)
+    send_api_message(api_success)
     logging.info("Done.")
 
 
