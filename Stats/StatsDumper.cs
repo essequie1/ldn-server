@@ -20,21 +20,24 @@ namespace LanPlayServer.Stats
                 ClientName = "LdnServer",
                 EndPoints = new()
                 {
-                    redisEndpoint
-                }
+                    redisEndpoint,
+                },
             });
 
             _db = _redisConnection.GetDatabase();
 
-            IJsonCommands json = _db.JSON();
+            Console.WriteLine("Creating empty json objects for redis if necessary...");
 
-            Console.WriteLine("Creating empty json objects for redis...");
-
-            json.Set("ldn", "$", new LdnAnalytics().ToJson());
-            json.Set("games", "$", new {});
+            EnsureDBKeysExist(_db.JSON());
 
             Statistics.GameAnalyticsChanged += OnGameAnalyticsChanged;
             Statistics.LdnAnalyticsChanged += OnLdnAnalyticsPropertyChanged;
+        }
+
+        private static void EnsureDBKeysExist(IJsonCommands json)
+        {
+            json.Set("ldn", "$", new LdnAnalytics().ToJson(), When.NotExists);
+            json.Set("games", "$", new {}, When.NotExists);
         }
 
         public static void Stop()
@@ -51,6 +54,7 @@ namespace LanPlayServer.Stats
             IJsonCommands json = _db.JSON();
             string analyticsJson = analytics.ToJson();
 
+            EnsureDBKeysExist(json);
             json.Set("ldn", "$", analyticsJson);
         }
 
@@ -58,6 +62,8 @@ namespace LanPlayServer.Stats
         {
             IJsonCommands json = _db.JSON();
             string analyticsJson = analytics.ToJson();
+
+            EnsureDBKeysExist(json);
 
             if (created)
             {
@@ -80,6 +86,8 @@ namespace LanPlayServer.Stats
             {
                 return;
             }
+
+            EnsureDBKeysExist(json);
 
             if (analytics.PlayerCount == 0)
             {
