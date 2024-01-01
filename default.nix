@@ -1,9 +1,8 @@
-{ pkgs ? import <nixpkgs> {}, stdenv ? pkgs.stdenv }:
+{ pkgs ? import <nixpkgs> { }, stdenv ? pkgs.stdenv }:
 
 let
-in
 
-pkgs.buildDotnetModule rec {
+in pkgs.buildDotnetModule rec {
   pname = "ryujinx-ldn-server";
   version = "0.1";
 
