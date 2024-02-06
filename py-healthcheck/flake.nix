@@ -28,7 +28,6 @@
                     buildInputs = old.buildInputs or [ ]
                       ++ [ python311Packages.poetry-core ];
                   });
-                "dbus-python" = python311Packages.dbus-python;
               });
             };
         };
