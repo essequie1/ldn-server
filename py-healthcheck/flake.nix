@@ -23,9 +23,12 @@
               projectDir = self;
 
               overrides = poetry2nix.overrides.withDefaults (self: super: {
-                "discord-webhook" = super."discord-webhook".overridePythonAttrs (old: {
-                  buildInputs = old.buildInputs or [ ] ++ [ python311Packages.poetry-core ];
-                });
+                "discord-webhook" = super."discord-webhook".overridePythonAttrs
+                  (old: {
+                    buildInputs = old.buildInputs or [ ]
+                      ++ [ python311Packages.poetry-core ];
+                  });
+                "dbus-python" = python311Packages.dbus-python;
               });
             };
         };
@@ -47,7 +50,8 @@
           options = let inherit (lib) mkEnableOption mkOption types;
           in {
             services.ldn-healthcheck = {
-              enable = mkEnableOption (lib.mdDoc "LDN healthcheck script (RyuDoctor)");
+              enable =
+                mkEnableOption (lib.mdDoc "LDN healthcheck script (RyuDoctor)");
               user = mkOption {
                 type = types.str;
                 default = "ldn-healthcheck";
@@ -55,18 +59,11 @@
                   User account used to run the ldn-healthcheck script.
                 '';
               };
-              groupName = mkOption {
+              group = mkOption {
                 type = types.str;
-                default = "ryujinx-ldn";
+                default = "ldn-healthcheck";
                 description = lib.mdDoc ''
                   Name of the group used to run the ldn-healthcheck script.
-                '';
-              };
-              groupId = mkOption {
-                type = types.int;
-                default = 990;
-                description = lib.mdDoc ''
-                  ID of the group used to run the ldn-healthcheck script.
                 '';
               };
               ldnServiceName = mkOption {
@@ -120,28 +117,29 @@
               environment = {
                 LDN_SERVICE = cfg.ldnServiceName;
                 DC_WEBHOOK = cfg.discordWebhookUrl;
-              } // (if cfg.enableDebug then {DEBUG = 1;} else {});
+              } // (if cfg.enableDebug then { DEBUG = 1; } else { });
 
               serviceConfig = rec {
                 Type = "oneshot";
                 User = cfg.user;
-                Group = cfg.groupName;
+                Group = cfg.group;
               };
             };
 
-            users = mkIf (cfg.user == "ldn-healthcheck") {
-              users.ldn-healthcheck = {
-                group = cfg.user;
-                isSystemUser = true;
-              };
-              extraUsers.ldn-healthcheck.uid = 993;
+            users = mkIf (cfg.user == "ldn-healthcheck" && cfg.group
+              == "ldn-healthcheck") {
+                users.ldn-healthcheck = {
+                  group = cfg.group;
+                  isSystemUser = true;
+                };
+                extraUsers.ldn-healthcheck.uid = 993;
 
-              groups.ldn-healthcheck = { };
-              extraGroups.ldn-healthcheck = {
-                name = cfg.groupName;
-                gid = cfg.groupId;
+                groups.ldn-healthcheck = { };
+                extraGroups.ldn-healthcheck = {
+                  name = cfg.group;
+                  gid = 994;
+                };
               };
-            };
           };
         };
 
