@@ -19,7 +19,15 @@
           poetry2nix = inputs.poetry2nix.lib.mkPoetry2Nix { inherit pkgs; };
         in {
           ldn-healthcheck = with final;
-            poetry2nix.mkPoetryApplication rec { projectDir = self; };
+            poetry2nix.mkPoetryApplication rec {
+              projectDir = self;
+
+              overrides = poetry2nix.overrides.withDefaults (self: super: {
+                "discord-webhook" = super."discord-webhook".overridePythonAttrs (old: {
+                  buildInputs = old.buildInputs or [ ] ++ [ python311Packages.poetry-core ];
+                });
+              });
+            };
         };
     in flake-utils.lib.eachDefaultSystem (system:
       let
