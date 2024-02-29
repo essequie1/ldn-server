@@ -116,7 +116,7 @@
               environment = {
                 LDN_SERVICE = cfg.ldnServiceName;
                 DC_WEBHOOK = cfg.discordWebhookUrl;
-              } // (if cfg.enableDebug then { DEBUG = 1; } else { });
+              } // (if cfg.enableDebug then { DEBUG = "1"; } else { });
 
               serviceConfig = rec {
                 Type = "oneshot";
