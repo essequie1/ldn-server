@@ -26,18 +26,18 @@ namespace LanPlayServer.Stats
 
             _db = _redisConnection.GetDatabase();
 
-            Console.WriteLine("Creating empty json objects for redis if necessary...");
+            Console.WriteLine("Creating empty json objects for redis...");
 
-            EnsureDBKeysExist(_db.JSON());
+            EnsureDBKeysExist(_db.JSON(), true);
 
             Statistics.GameAnalyticsChanged += OnGameAnalyticsChanged;
             Statistics.LdnAnalyticsChanged += OnLdnAnalyticsPropertyChanged;
         }
 
-        private static void EnsureDBKeysExist(IJsonCommands json)
+        private static void EnsureDBKeysExist(IJsonCommands json, bool overwrite = false)
         {
-            json.Set("ldn", "$", new LdnAnalytics().ToJson(), When.NotExists);
-            json.Set("games", "$", new {}, When.NotExists);
+            json.Set("ldn", "$", new LdnAnalytics().ToJson(), overwrite ? When.Always : When.NotExists);
+            json.Set("games", "$", new {}, overwrite ? When.Always : When.NotExists);
         }
 
         public static void Stop()
