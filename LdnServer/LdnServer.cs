@@ -92,7 +92,7 @@ namespace LanPlayServer
 
                 if (game.TestReadLock())
                 {
-                    _hostedGames.Remove(game.Id, out HostedGame removed);
+                    CloseGame(game.Id);
                     continue;
                 }
 
@@ -177,6 +177,7 @@ namespace LanPlayServer
 
             if (removed != null)
             {
+                Console.WriteLine($"Removing from analytics: {id}");
                 Statistics.RemoveGameAnalytics(removed);
             }
         }
