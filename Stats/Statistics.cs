@@ -31,14 +31,12 @@ namespace LanPlayServer.Stats
 
         private static void UpdateGameAnalytics(object sender, PropertyChangedEventArgs e)
         {
-            HostedGame game = sender as HostedGame;
-
-            if (game == null || !Games.ContainsKey(game.Id))
+            if (sender is not HostedGame game || !Games.TryGetValue(game.Id, out GameAnalytics value))
             {
                 return;
             }
 
-            Games[game.Id].Update(game);
+            value.Update(game);
 
             Task.Run(() => UpdateLdnAnalytics(Games.Values.ToImmutableList()));
         }

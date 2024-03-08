@@ -18,10 +18,10 @@ namespace LanPlayServer.Stats
             _redisConnection = ConnectionMultiplexer.Connect(new ConfigurationOptions()
             {
                 ClientName = "LdnServer",
-                EndPoints = new()
-                {
+                EndPoints =
+                [
                     redisEndpoint,
-                },
+                ],
             });
 
             _db = _redisConnection.GetDatabase();
@@ -51,7 +51,7 @@ namespace LanPlayServer.Stats
 
         private static void OnLdnAnalyticsPropertyChanged(LdnAnalytics analytics)
         {
-            IJsonCommands json = _db.JSON();
+            JsonCommands json = _db.JSON();
             string analyticsJson = analytics.ToJson();
 
             EnsureDBKeysExist(json);
@@ -60,7 +60,7 @@ namespace LanPlayServer.Stats
 
         private static void OnGameAnalyticsChanged(GameAnalytics analytics, bool created)
         {
-            IJsonCommands json = _db.JSON();
+            JsonCommands json = _db.JSON();
             string analyticsJson = analytics.ToJson();
 
             EnsureDBKeysExist(json);
@@ -80,7 +80,7 @@ namespace LanPlayServer.Stats
         private static void OnGameAnalyticsPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             GameAnalytics analytics = sender as GameAnalytics;
-            IJsonCommands json = _db.JSON();
+            JsonCommands json = _db.JSON();
 
             if (analytics == null)
             {

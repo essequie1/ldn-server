@@ -214,7 +214,7 @@ namespace LanPlayServer
                 }
                 catch
                 {
-                    Console.WriteLine($"IP unavailable!");
+                    Console.WriteLine("IP unavailable!");
                     // Already disconnected?
                 }
 
