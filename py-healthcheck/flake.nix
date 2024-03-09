@@ -21,6 +21,7 @@
           ldn-healthcheck = with final;
             poetry2nix.mkPoetryApplication rec {
               projectDir = self;
+              src = projectDir;
 
               overrides = poetry2nix.overrides.withDefaults (self: super: {
                 "discord-webhook" = super."discord-webhook".overridePythonAttrs
