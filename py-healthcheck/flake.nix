@@ -137,7 +137,7 @@
                 groups.ldn-healthcheck = { };
                 extraGroups.ldn-healthcheck = {
                   name = cfg.group;
-                  gid = 994;
+                  gid = 986;
                 };
               };
           };
