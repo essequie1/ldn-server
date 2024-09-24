@@ -188,7 +188,25 @@
           in mkIf cfg.enable {
             nixpkgs.overlays = [ self.overlays."${system}" ryujinx-ldn-website.overlays."${system}" ];
 
+            # TODO: Is this necessary?
             networking.nat.enable = true;
+
+            # Set a stricter timeout policy for TCP connections to the LDN srever
+            networking.nftables.tables.ldn = {
+              content = ''
+                ct timeout ldn-timeout {
+                  l3proto ip;
+                  protocol tcp;
+
+                  policy = {established: 30, close_wait: 5, close: 5}
+                }
+
+                chain input {
+                  tcp dport ${toString cfg.ldnPort} ct timeout set "ldn-timeout"
+                }
+             '';
+             family = "inet";
+            };
 
             nixpkgs.config.allowUnfreePredicate = pkg:
               builtins.elem (lib.getName pkg) [ "RedisJSON" ];
