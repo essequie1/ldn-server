@@ -202,6 +202,7 @@
                 }
 
                 chain input {
+                  tcp dport ${toString cfg.ldnPort} ct state new limit rate 10/minute accept
                   tcp dport ${toString cfg.ldnPort} ct timeout set "ldn-timeout"
                 }
              '';
