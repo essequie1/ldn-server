@@ -65,6 +65,7 @@ namespace LanPlayServer
         }
 
         public string Id { get; }
+        public long CreatedAt { get; }
 
         public bool Closing { get; set; }
 
@@ -123,6 +124,7 @@ namespace LanPlayServer
         public HostedGame(string id, NetworkInfo info, AddressList dhcpConfig)
         {
             Id = id;
+            CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
             _lock = new object();
             _players = new List<LdnSession>();

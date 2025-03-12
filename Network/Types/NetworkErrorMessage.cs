@@ -19,6 +19,8 @@ namespace LanPlayServer.Network.Types
 
         RejectFailed,
 
+        BannedByServer = 127,
+
         Unknown = -1
     }
 

@@ -90,6 +90,11 @@ namespace LanPlayServer
             int gameCount = all.Length;
             int playerCount = 0;
 
+            long currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            long oneHour = 3600000;
+            // Games older than this are probably bugged "ghost" lobbies, still rarely happens, there's probably still a lock issue somewhere
+            long minTime = currentTime - (oneHour * 16);
+
             for (int i = 0; i < all.Length; i++)
             {
                 HostedGame game = all[i].Value;
@@ -100,6 +105,11 @@ namespace LanPlayServer
                 playerCount += nPlayers;
 
                 if (game.Passphrase != passphrase || game == exclude)
+                {
+                    continue;
+                }
+
+                if (game.CreatedAt < minTime)
                 {
                     continue;
                 }

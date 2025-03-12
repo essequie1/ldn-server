@@ -2,12 +2,11 @@ import json
 import time
 from enum import IntEnum
 
-import dbus
 import logging
 import os
+import subprocess
 
 import requests
-from dbus import DBusException
 from discord_webhook import DiscordEmbed, DiscordWebhook
 
 from .ryuldn.packets.create_access_point import CreateAccessPointPacket
@@ -15,15 +14,17 @@ from .ryuldn import RyujinxLdnClient
 from .ryuldn.packets.initialize import InitializePacket
 
 __VERSION__ = "0.1.0"
-NAME = "RyuDoctor"
+NAME = "LDN Status"
 
-HOST = "ldn.ryujinx.org"
+HOST = os.environ["LDN_HOSTNAME"]
+WEBHOST = os.environ["LDN_WEBHOSTNAME"]
 PORT = 30456
 
-SERVER_RESTART_PING_ROLE = "1130585039890042911"
+SERVER_RESTART_PING_ROLE = os.environ["DC_ROLEID"]
+HEALTHCHECK_INTERVAL = 15 * 60
 
 ALLOWED_MENTIONS = {
-    "users": ["113928430583545863", "330753027071934486"],
+    "users": [],
     "roles": [SERVER_RESTART_PING_ROLE],
 }
 
@@ -73,7 +74,7 @@ def send_init_embed() -> bool:
     api_success = False
     EMBED.color = 0x4D9DF2
     try:
-        api_response = requests.get(f"https://{HOST}/api")
+        api_response = requests.get(f"https://{WEBHOST}/api")
         api_response.raise_for_status()
         EMBED.set_description(
             "Current status:\n"
@@ -145,42 +146,35 @@ def restart_service():
     webhook.set_content(message)
     webhook.execute(True)
     try:
-        manager.RestartUnit(service_name, "fail")
-    except DBusException as ex:
+        subprocess.run(["docker", "restart", service_name], check=True)
+    except subprocess.CalledProcessError as ex:
         logging.exception("Could not restart the LDN service.")
         webhook.set_content(f"{message} Error.\n```{ex}\n```")
         webhook.edit()
-        exit(1)
+        return
 
     webhook.set_content(f"{message} Done.")
     webhook.edit()
 
 
 def main():
-    global webhook, manager, service_name
+    global webhook, service_name
 
     if "DEBUG" in os.environ.keys():
         logging.getLogger().setLevel(logging.DEBUG)
     else:
         logging.getLogger().setLevel(logging.INFO)
 
-    logging.debug("Getting system bus manager interface...")
-    sys_bus = dbus.SystemBus()
-    systemd1 = sys_bus.get_object(
-        "org.freedesktop.systemd1", "/org/freedesktop/systemd1"
-    )
-    manager = dbus.Interface(systemd1, "org.freedesktop.systemd1.Manager")
-
     if "LDN_SERVICE" not in os.environ.keys() or len(os.environ["LDN_SERVICE"]) == 0:
         logging.error("LDN service name is not configured.")
-        exit(1)
+        return
 
     service_name = os.environ["LDN_SERVICE"]
     logging.debug(f"Got LDN service name: {service_name}")
 
     if "DC_WEBHOOK" not in os.environ.keys() or len(os.environ["DC_WEBHOOK"]) == 0:
         logging.error("Discord webhook is not configured.")
-        exit(1)
+        return
 
     webhook_url = os.environ["DC_WEBHOOK"]
     logging.debug(f"Using discord webhook URL: {webhook_url}")
@@ -193,50 +187,61 @@ def main():
         allowed_mentions=ALLOWED_MENTIONS,
     )
 
-    api_success = send_init_embed()
+    while True:
+        try:
+            webhook.set_content("")
+            
+            api_success = send_init_embed()
 
-    logging.info("Trying to connect to LDN server...")
-    send_wip_embed(0, TestStatus.Running)
-    try:
-        client = RyujinxLdnClient(HOST, PORT)
-    except Exception as ex:
-        logging.exception("Failed to connect to LDN server.")
-        send_wip_embed(0, TestStatus.Failed, ex)
-        send_wip_embed(1, TestStatus.Cancelled)
-        send_wip_embed(2, TestStatus.Cancelled)
-        send_done_embed(False)
-        send_api_message(api_success)
-        restart_service()
-        exit(0)
+            logging.info("Trying to connect to LDN server...")
+            send_wip_embed(0, TestStatus.Running)
+            try:
+                client = RyujinxLdnClient(HOST, PORT)
+            except Exception as ex:
+                logging.exception("Failed to connect to LDN server.")
+                send_wip_embed(0, TestStatus.Failed, ex)
+                send_wip_embed(1, TestStatus.Cancelled)
+                send_wip_embed(2, TestStatus.Cancelled)
+                send_done_embed(False)
+                send_api_message(api_success)
+                restart_service()
+                time.sleep(HEALTHCHECK_INTERVAL)
+                continue
 
-    send_wip_embed(0, TestStatus.Passed)
-    logging.info("Sending initialize packet...")
-    send_wip_embed(1, TestStatus.Running)
-    client.send(InitializePacket())
-    logging.info("Waiting for response...")
-    init_response, _ = client.receive()
-    if init_response is None:
-        logging.error("Failed to receive a valid response.")
-        send_wip_embed(1, TestStatus.Failed)
-        send_wip_embed(2, TestStatus.Cancelled)
-        send_done_embed(False)
-        send_api_message(api_success)
-        restart_service()
-        exit(0)
+            send_wip_embed(0, TestStatus.Passed)
+            logging.info("Sending initialize packet...")
+            send_wip_embed(1, TestStatus.Running)
+            client.send(InitializePacket())
+            logging.info("Waiting for response...")
+            init_response, _ = client.receive()
+            if init_response is None:
+                logging.error("Failed to receive a valid response.")
+                send_wip_embed(1, TestStatus.Failed)
+                send_wip_embed(2, TestStatus.Cancelled)
+                send_done_embed(False)
+                send_api_message(api_success)
+                restart_service()
+                time.sleep(HEALTHCHECK_INTERVAL)
+                continue
 
-    logging.info(f"Initialize reply received: {init_response}")
-    send_wip_embed(1, TestStatus.Passed)
-    logging.info("Creating test game...")
-    send_wip_embed(2, TestStatus.Running)
-    client.send(HOST_AP_PACKET)
-    logging.info("Game created, waiting for 5 seconds...")
-    send_wip_embed(2, TestStatus.Passed)
-    time.sleep(5)
-    logging.info("Disconnecting...")
-    client.disconnect()
-    send_done_embed(True)
-    send_api_message(api_success)
-    logging.info("Done.")
+            logging.info(f"Initialize reply received: {init_response}")
+            send_wip_embed(1, TestStatus.Passed)
+            logging.info("Creating test game...")
+            send_wip_embed(2, TestStatus.Running)
+            client.send(HOST_AP_PACKET)
+            logging.info("Game created, waiting for 5 seconds...")
+            send_wip_embed(2, TestStatus.Passed)
+            time.sleep(5)
+            logging.info("Disconnecting...")
+            client.disconnect()
+            send_done_embed(True)
+            send_api_message(api_success)
+            logging.info("Done.")
+
+        except Exception as e:
+            logging.exception("An unexpected error occurred during the health check.")
+
+        time.sleep(HEALTHCHECK_INTERVAL)
 
 
 if __name__ == "__main__":

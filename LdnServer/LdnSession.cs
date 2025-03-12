@@ -212,6 +212,13 @@ namespace LanPlayServer
                 try
                 {
                     RealIpAddress = GetSessionIp();
+                    var ipToCheck = ((IPEndPoint)Socket.RemoteEndPoint).Address;
+                    if (IPBan.IsIPBanned(ipToCheck))
+                    {
+                        Console.WriteLine($"Banned IP tried to connect: {ipToCheck}");
+                        Disconnect();
+                        return;
+                    }
                 }
                 catch
                 {
@@ -317,6 +324,16 @@ namespace LanPlayServer
 
         private void HandleCreateAccessPoint(LdnHeader ldnPacket, CreateAccessPointRequest request, byte[] advertiseData)
         {
+            var nameAsString = StringUtils.ReadUtf8String(request.UserConfig.UserName.AsSpan());
+            if (nameAsString.ContainsSlur())
+            {
+                var ipToBan = ((IPEndPoint)Socket.RemoteEndPoint).Address;
+                Console.WriteLine($"Banning {nameAsString} ({ipToBan})");
+                IPBan.BanIP(ipToBan);
+                SendAsync(RyuLdnProtocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.BannedByServer }));
+                Disconnect();
+                return;
+            }
             if (CurrentGame != null || !_initialized)
             {
                 // Cannot create an access point while in a game.
@@ -487,6 +504,17 @@ namespace LanPlayServer
 
         private void ConnectImpl(string id, UserConfig userConfig, uint localCommunicationVersion)
         {
+            var nameAsString = StringUtils.ReadUtf8String(userConfig.UserName.AsSpan());
+            if (nameAsString.ContainsSlur())
+            {
+                var ipToBan = ((IPEndPoint)Socket.RemoteEndPoint).Address;
+                Console.WriteLine($"Banning {nameAsString} ({ipToBan})");
+                IPBan.BanIP(ipToBan);
+                SendAsync(RyuLdnProtocol.Encode(PacketId.NetworkError, new NetworkErrorMessage { Error = NetworkError.BannedByServer }));
+                Disconnect();
+                return;
+            }
+
             HostedGame game = _tcpServer.FindGame(id);
 
             if (game != null)

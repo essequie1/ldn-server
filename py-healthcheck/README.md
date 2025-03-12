@@ -11,6 +11,7 @@ This app can be configured using the following environment variables:
 | `DEBUG`             | This can be set to change the logging mode to DEBUG. Otherwise it will default to INFO. |
 | `LDN_SERVICE`       | The name of the systemd service to restart, in case the checks fail.                    |
 | `DC_WEBHOOK`        | The URL of the discord webhook to notify.                                               |
+| `DC_ROLEID`         | The role to notify.                                                                     |
 
 ## Checks
 

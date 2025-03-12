@@ -77,6 +77,18 @@ namespace LanPlayServer.Utils
             "\u0046\u0041\u0047\u0047\u004F\u0054"
         ];
 
+        public static bool ContainsSlur(this string input)
+        {
+            foreach (var word in filterSlurs)
+            {
+                if (input.ToUpper().Contains(word))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public static string CleanInput(this string input, int maxLength = -1, string extraAllowedChars = "")
         {
             if (input == null)

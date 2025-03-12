@@ -48,6 +48,10 @@ namespace LanPlayServer
 
             _ldnServer = new(Host, Port);
 
+            var bannedIPs = IPBan.GetBannedIPs();
+
+            Console.WriteLine($"Loaded {bannedIPs.Count} banned IPs");
+
             Console.Write($"\tLdnServer (port: {Port}) starting...");
             _ldnServer.Start();
             Console.WriteLine(" Done!");

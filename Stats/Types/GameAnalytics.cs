@@ -24,6 +24,7 @@ namespace LanPlayServer.Stats.Types
         private string _status;
         private int _sceneId;
         private List<string> _players;
+        private long _createdAt;
 
         public string Id
         {
@@ -168,6 +169,19 @@ namespace LanPlayServer.Stats.Types
             }
         }
 
+        public long CreatedAt
+        {
+            get => _createdAt;
+            set
+            {
+                if (_createdAt != value)
+                {
+                    _createdAt = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
         private static void FromGame(GameAnalytics instance, HostedGame game)
         {
             if (game.Closing)
@@ -202,6 +216,7 @@ namespace LanPlayServer.Stats.Types
             instance.Status = game.Info.Ldn.StationAcceptPolicy == 1 ? "Not Joinable" : "Joinable";
             instance.SceneId = game.Info.NetworkId.IntentId.SceneId;
             instance.Players = players;
+            instance.CreatedAt = game.CreatedAt;
         }
 
         public void Update(HostedGame game)
