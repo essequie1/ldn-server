@@ -15,7 +15,6 @@ services:
       LDN_PORT: 30456
       LDN_REDIS_HOST: redis
       LDN_REDIS_PORT: 6379
-      IP_BAN_FILE_PATH: /data/ryuldn/bannedips.txt
     volumes:
       - /data/ryuldn:/data/ryuldn
     ports:
