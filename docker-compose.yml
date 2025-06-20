@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 services:
   redis:
@@ -22,20 +22,6 @@ services:
       - "30456:30456"
     networks:
       - main
-
-  ryujinx-ldn-website:
-    # NOTE: Make sure the website repo is cloned to this location and up to date
-    hostname: ryujinx-ldn-website
-    build: ../ryujinx-ldn-website/
-    environment:
-      NODE_ENV: production
-      HOST: 0.0.0.0
-      PORT: 8080
-      REDIS_URL: "redis://redis:6379"
-    ports:
-      - "8080:8080"
-    networks:
-      - main 
 
 networks:
   main:
